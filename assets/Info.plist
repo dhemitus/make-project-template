@@ -1,0 +1,28 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://apple.com">
+<plist version="1.0">
+<dict>
+    <key>CFBundleIconFile</key>
+    <string>AppIcon.icns</string>
+    <key>CFBundleExecutable</key>
+    <string>app_main</string>
+    <key>CFBundleIdentifier</key>
+    <string>com.engine.vulkanapp</string>
+    <key>CFBundleName</key>
+    <string>VulkanApp</string>
+    <key>CFBundlePackageType</key>
+    <string>APPL</string>
+    <key>CFBundleShortVersionString</key>
+    <string>1.0.0</string>
+    <key>CFBundleSignature</key>
+    <string>????</string>
+    <key>CFBundleSupportedPlatforms</key>
+    <array>
+        <string>MacOSX</string>
+    </array>
+    <key>LSMinimumSystemVersion</key>
+    <string>11.0</string>
+    <key>NSHighResolutionCapable</key>
+    <true/>
+</dict>
+</plist>
