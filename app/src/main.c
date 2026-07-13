@@ -1,111 +1,172 @@
+#include "SDL3/SDL_events.h"
 #include <SDL3/SDL.h>
 #include <SDL3/SDL_vulkan.h>
-#include <SDL3/SDL_main.h> // MANDATORY: This handles JNI handshakes for mobile
 #include <vulkan/vulkan.h>
+#include <SDL3/SDL_main.h>
 
 #include <stdio.h>
 #include <stdbool.h>
 #include <stdlib.h>
 #include <unistd.h> // Required for chdir()
 
-#include "SDL3/SDL_log.h"
-#include "core.h"
-#include "preference.h"
+#include <dhemitus/input.h>
+#include <dhemitus/loop.h>
+#include <dhemitus/core.h>
+#include <preference.h>
+#include <dhemitus/logger.h>
+#include <dhemitus/asserts.h>
+#include <dhemitus/window.h>
 
-void is_vulkan_support(SDL_Window *window){
-    if(!SDL_Vulkan_LoadLibrary(NULL)){
-        SDL_Log("----------------------------------------------------------------------------------this device not vulkan support");
-        return;
-    }
-
-    u32 ex_count = 0;
-    const char *const *exts = SDL_Vulkan_GetInstanceExtensions(&ex_count);
-
-    if(exts == NULL || ex_count == 0){
-        SDL_Log("fetch extension failed");
-    } else {
-        SDL_Log("----------------------------------------------------------------------------------fetch extension succeed");
-    }
-
-    SDL_Vulkan_UnloadLibrary();
+void on_key(window_context *context) {
+    LOG_INFO("appppp-------------- %d : %d", context->input_event.key_code, context->input_event.key_action);
 }
 
-// SDL3 automatically handles renaming this to the proper JNI signature behind the scenes
+void on_resize(window_context *context){
+    LOG_INFO("[System] Window resized to: %dx%d\n", context->input_event.window_width, context->input_event.window_height);
+}
+
+void on_click(window_context *context){
+    (void)context;
+    //LOG_INFO("[Mouse] Click: Button type: %d action: %d  at X:%.1f, Y:%.1f (Count: %d)", context->input_event.type, context->input_event.mouse_action, context->input_event.mouse_x, context->input_event.mouse_y, context->input_event.mouse_clicks);
+
+}
+
+void on_move(window_context *context){
+    LOG_INFO("[Mouse] move callback: Button:  at X:%.1f, Y:%.1f ", context->input_event.mouse_x, context->input_event.mouse_y);
+}
+
+void on_scroll(window_context *context){
+    LOG_INFO("[Mouse] scroll: Button:  at X:%.1f, Y:%.1f ", context->input_event.scroll_x, context->input_event.scroll_y);
+}
+
+void on_minimize(window_context *context){
+
+    if(context->is_visible){
+        LOG_INFO("window maximize-------------------------------");
+    } else {
+        LOG_INFO("window minimize-------------------------------");
+    }
+}
+
+void on_pad(window_context *context, int jid, b8 connected){
+    (void)context;
+    LOG_INFO("[Gamepad] id %d connect: %d", jid, connected);
+}
+
+typedef struct game {
+    int update_called;
+    int render_called;
+    u64 time_passed;
+} game;
+
+b8 on_update(window_context *context, void *game_state){
+    game *state = (game *)game_state;
+    (void)context;
+    /*if(context->input_event.mouse_action == BUTTON_ACTION_PRESS){
+        LOG_INFO("[Mouse] Click: Button action: %d  at X:%.1f, Y:%.1f (Count: %d)", context->input_event.mouse_action, context->input_event.mouse_x, context->input_event.mouse_y, context->input_event.mouse_clicks);
+        LOG_INFO("[Mouse] move callback: Button:  at X:%.1f, Y:%.1f ", context->input_event.mouse_x, context->input_event.mouse_y);
+    }*/
+    if(context->input_event.type == INPUT_EVENT_TYPE_MOUSE_DOWN){
+        LOG_INFO("[Mouse] Click: Button type: %d action: %d  at X:%.1f, Y:%.1f (Count: %d)", context->input_event.type, context->input_event.mouse_action, context->input_event.mouse_x, context->input_event.mouse_y, context->input_event.mouse_clicks);
+    }
+
+    state->update_called += 1;
+    return true;
+}
+
+b8 on_render(window_context *context, void *game_state, u64 dt){
+    game *state = (game *)game_state;
+    state->render_called += 1;
+    state->time_passed += dt;
+    (void)context;
+    if(state->time_passed > 1000 * 1000 * 1000){
+//        LOG_INFO("update new fps: %.2f", (double)state->update_called);
+//        LOG_INFO("render new fps: %.2f", (double)state->render_called);
+
+        state->update_called = 0;
+        state->render_called = 0;
+        state->time_passed = 0;
+    }
+
+    return true;
+
+}
+
 int main(int argc, char* argv[]) {
     (void)argc; (void)argv;
 
-    // Initialize SDL3 Video subsystems
-    if (!SDL_Init(SDL_INIT_VIDEO)) {
-        return -1;
-    }
-#ifdef __APPLE__
-    // Fix: Move the working directory to the actual bundle folder level, not the internal MacOS binary path
-    char* base_path = SDL_GetBasePath();
-    if (base_path) {
-        // base_path is "VulkanApp.app/Contents/MacOS/"
-        // We change to "VulkanApp.app/Contents/" by moving up one level
-        chdir(base_path);
-        chdir("..");
-        SDL_free(base_path);
-    }
-
-    // Inject driver paths so Finder knows where Homebrew/Vulkan lives
-    if (getenv("VK_ICD_FILENAMES") == NULL) {
-        if (access("/usr/local/share/vulkan/icd.d/MoltenVK_icd.json", F_OK) == 0) {
-            setenv("VK_ICD_FILENAMES", "/usr/local/share/vulkan/icd.d/MoltenVK_icd.json", 1);
-        } else {
-            setenv("VK_ICD_FILENAMES", "/opt/homebrew/share/vulkan/icd.d/MoltenVK_icd.json", 1);
-        }
-    }
-#endif
     printf("[Engine] Initializing sub-modules...\n");
     int result = math_add(5, 10);
-    printf("[Engine] Test function returned value: %d\n", result);
+    LOG_INFO("[Engine] Test function returned value: %d\n", result);
+    /*LOG_FATAL("std::vector<const char*> enabledInstanceExtensions; fatal situation: %f", 3.14f);
+    LOG_ERROR(" std::vector<const char*> enabledInstanceExtensions;error situation: %f", 3.14f);
+    LOG_WARN(" std::vector<const char*> enabledInstanceExtensions;error situation: %f", 3.14f);
+    LOG_INFO(" std::vector<const char*> enabledInstanceExtensions;error situation: %f", 3.14f);
+    ASSERTION(1 == 1);*/
 
     // Spawn window surface framework 
-    SDL_Window* window = SDL_CreateWindow(
-        "Vulkan Engine Workspace", 
-        1280, 720, 
-        SDL_WINDOW_VULKAN | SDL_WINDOW_RESIZABLE
-    );
+    window_config config = {
+        .title = "dhemitus engine",
+        .width = 1024,
+        .height = 720,
+        .fps = 10
+    };
 
-    if (!window) {
-        SDL_Quit();
-        return -1;
+    input_event input = {
+        .window_width = config.width,
+        .window_height = config.height
+    };
+
+    window_context context = {
+        .window = NULL,
+        .renderer = NULL,
+        .input_event = input,
+        .is_running = true,
+        .is_visible = true,
+        .has_mouse_focus = false,
+        .has_input_focus = false       
+    };
+
+    game state = {
+        .update_called = 0,
+        .render_called = 0,
+        .time_passed = 0
+    };
+
+    b8 cek = window_create(&context, &config);
+
+    window_set_key_callback(&context, on_key);
+    window_set_mouse_button_callback(&context, on_click);
+    window_set_mouse_position_callback(&context, on_move);
+    window_set_mouse_scroll_callback(&context, on_scroll);
+
+    window_set_gamepad_callback(&context, on_pad);
+
+    window_set_resize_callback(&context, on_resize);
+    window_set_minimize_callback(&context, on_minimize);
+
+    if(cek){
+        LOG_INFO("-----------------maka jadi");
     }
 
-    is_vulkan_support(window);
+    engine_loop engine = {
+        .window_context = &context,
+        .current_time = SDL_GetTicksNS(),
+        .accumulator = 0,
+        .update_time = (1000 * 1000 * 1000) / config.fps,
+        .on_event_callback = window_poll_events,
+        .on_update_callback = on_update,
+        .on_render_callback = on_render
+    };
 
-    SDL_Renderer* renderer = SDL_CreateRenderer(window, NULL);
-    if (!renderer) {
-        SDL_DestroyWindow(window);
-        SDL_Quit();
-        return -1;
-    }
-
-    bool is_running = true;
     SDL_Event event;
 
-    while (is_running) {
-        while (SDL_PollEvent(&event)) {
-            if (event.type == SDL_EVENT_QUIT) {
-                is_running = false;
-            }
-        }
-
-        // --- CLEAN CANVAS RENDERING LOOP ---
-        // 1. Set the background color to a nice dark gray/blue
-        SDL_SetRenderDrawColor(renderer, 30, 35, 45, 255);
-        
-        // 2. Clear the screen with that color
-        SDL_RenderClear(renderer);
-        
-        // 3. Present the frame onto your phone screen
-        SDL_RenderPresent(renderer);
-        SDL_Delay(16); // Thread breathing space (~60 FPS lock)
+    while (window_should_run(&context)) {
+        //window_poll_events(&context, &event);
+        engine_next_loop(&engine, &state, &event);
+        window_swap_buffers(&context);
     }
 
-    SDL_DestroyWindow(window);
-    SDL_Quit();
+    window_destroy(&context);
     return 0;
 }

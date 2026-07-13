@@ -1,13 +1,25 @@
+# --- AUTOMATED SHADER COMPILATION MODULE ---
 .PHONY: shaders
-# --- VULKAN SHADER PIPELINE RULES ---
-shaders: $(SPV_OUTPUTS)
 
-$(SHADER_BUILD)/%.vert.spv: shaders/%.vert
+shaders:
+	@echo "Checking for Vulkan shader source files..."
 	@mkdir -p $(SHADER_BUILD)
-	@echo "Compiling Vertex Shader: $<"
-	$(GLSLC) $< -o $@
+	
+	# 1. Dynamically locate and compile any Vertex Shaders found
+	@for f in shaders/*.vert; do \
+		if [ -f "$$f" ]; then \
+			out=$(SHADER_BUILD)/$$(basename "$$f").spv; \
+			echo "Compiling Vertex Shader: $$f -> $$out"; \
+			$(GLSLC) "$$f" -o "$$out"; \
+		fi \
+	done
+	
+	# 2. Dynamically locate and compile any Fragment Shaders found
+	@for f in shaders/*.frag; do \
+		if [ -f "$$f" ]; then \
+			out=$(SHADER_BUILD)/$$(basename "$$f").spv; \
+			echo "Compiling Fragment Shader: $$f -> $$out"; \
+			$(GLSLC) "$$f" -o "$$out"; \
+		fi \
+	done
 
-$(SHADER_BUILD)/%.frag.spv: shaders/%.frag
-	@mkdir -p $(SHADER_BUILD)
-	@echo "Compiling Fragment Shader: $<"
-	$(GLSLC) $< -o $@

@@ -50,6 +50,10 @@ STATIC_ASSERT(sizeof(i64) == 8, "size of i64: 8 bytes");
 STATIC_ASSERT(sizeof(f32) == 4, "size of f32: 4 bytes");
 STATIC_ASSERT(sizeof(f64) == 8, "size of f64: 8 bytes");
 
+#define benar 1
+#define salah 0
+
+
 #define true 1
 #define false 0
 

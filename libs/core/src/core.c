@@ -1,6 +1,6 @@
 #include <stdio.h>
-#include "core.h"
-#include "common.h"
+#include "dhemitus/core.h"
+#include "dhemitus/common.h"
 
 /* Public: Explicitly exported */
 int math_add(int a, int b) {

@@ -1,6 +1,6 @@
 #include <stdio.h>
-#include <core.h>
-#include <common.h>
+#include <dhemitus/core.h>
+#include <dhemitus/common.h>
 
 int main(int argc, char *argv[]) {
     (void)argc;

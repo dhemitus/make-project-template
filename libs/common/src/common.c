@@ -1,6 +1,6 @@
 
 #include <stdio.h>
-#include "common.h"
+#include "dhemitus/common.h"
 
 /* Internal: Hidden via -fvisibility=hidden (default in CMake config below) */
 void mylib_internal_helper(int value) {

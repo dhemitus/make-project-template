@@ -5,7 +5,7 @@ ANDROID_BUILD_DIR := $(BUILD_DIR)/android
 
 # Your unique Store/Device identity (Can be completely custom!)
 APPLICATION_ID  := com.vulkanforge.engine
-APP_NAME        := "Vulkan Forge Engine"
+APP_NAME        := Vulkan Forge Engine
 ANDROID_ICON_SRC := $(ASSETS_DIR)/android_icon.png
 
 # NDK Toolchain Path Resolution
@@ -20,7 +20,10 @@ AND_CXXFLAGS := -target aarch64-linux-android$(ANDROID_API) -Wall -Wextra -std=c
 AND_INC := -I$(ROOT_DIR)/include \
            -I$(ROOT_DIR)/libs/common/include \
            -I$(ROOT_DIR)/libs/core/include \
-           -I$(SDL_SRC_DIR)/include
+           -I$(SDL_SRC_DIR)/include \
+		   -I$(SDL_SRC_DIR)/include/SDL3 \
+           -I$(ROOT_DIR)/external/imgui \
+           -I$(ROOT_DIR)/external/imgui/backends
 
 .PHONY: android-init android-libs android-apk
 
@@ -39,23 +42,21 @@ android-init: init_submodules
 	@rm -f $(ANDROID_BUILD_DIR)/app/jni/SDL
 	@ln -s $(SDL_SRC_DIR) $(ANDROID_BUILD_DIR)/app/jni/SDL
 
-	# --- 1. CUSTOMIZE APP NAME ---
-	@sed -i '' 's/>SDLApp</>$(APP_NAME)</g' $(ANDROID_BUILD_DIR)/app/src/main/res/values/strings.xml 2>/dev/null || \
-	 sed -i 's/>SDLApp</>$(APP_NAME)</g' $(ANDROID_BUILD_DIR)/app/src/main/res/values/strings.xml
+	# --- 1. THE PRECISION APP NAME FIX ---
+	# We target ONLY the exact app_name string tag line, protecting the rest of the XML file
+	@sed -i '' 's/name="app_name">Game</name="app_name">$(APP_NAME)</g' $(ANDROID_BUILD_DIR)/app/src/main/res/values/strings.xml 2>/dev/null || \
+	 sed -i 's/name="app_name">Game</name="app_name">$(APP_NAME)</g' $(ANDROID_BUILD_DIR)/app/src/main/res/values/strings.xml
 
 	# --- FORCE STRICT LANDSCAPE ORIENTATION ---
-	# Adjusts the AndroidManifest template configuration to permanently lock horizontal layout
 	@sed -i '' 's/android:screenOrientation=".*"/android:screenOrientation="landscape"/g' $(ANDROID_BUILD_DIR)/app/src/main/AndroidManifest.xml 2>/dev/null || \
 	 sed -i 's/android:screenOrientation=".*"/android:screenOrientation="landscape"/g' $(ANDROID_BUILD_DIR)/app/src/main/AndroidManifest.xml
 
 	# --- 2. CUSTOMIZE APPLICATION ID (The Dual Package Fix) ---
-	# We rewrite only the applicationID block inside build.gradle so it is unique to the device,
-	# but we leave the internal Java namespace folder layout strictly as org.libsdl.app for JNI safety.
 	@sed -i '' 's/applicationId "org.libsdl.app"/applicationId "$(APPLICATION_ID)"/g' $(ANDROID_BUILD_DIR)/app/build.gradle 2>/dev/null || \
 	 sed -i 's/applicationId "org.libsdl.app"/applicationId "$(APPLICATION_ID)"/g' $(ANDROID_BUILD_DIR)/app/build.gradle
 
 	# --- 3. THE JAVA DEP INJECTION ---
-	# Tell the Java template launcher to load your 'libengine.so' library asset cleanly
+	# This ensures the Java JVM mounts 'libengine.so' before trying to execute 'libmain.so'
 	@sed -i '' 's/"main"/"engine", "main"/g' $(ANDROID_BUILD_DIR)/app/src/main/java/org/libsdl/app/SDLActivity.java 2>/dev/null || \
 	 sed -i 's/"main"/"engine", "main"/g' $(ANDROID_BUILD_DIR)/app/src/main/java/org/libsdl/app/SDLActivity.java
 
@@ -94,18 +95,25 @@ android-apk: android-init
 	@echo "Phase 2: Manually cross-compiling Engine Libraries & linking against compiled SDL3..."
 	@mkdir -p $(ANDROID_BUILD_DIR)/app/src/main/jniLibs/$(ANDROID_ABI)
 	
+	# Compile common.c and core.c into your internal engine dynamic framework library
 	$(NDK_CC) $(AND_CFLAGS) $(AND_INC) -shared -Wl,-soname,libengine.so \
-		libs/common/src/common.c libs/core/src/core.c \
+		$(wildcard libs/common/src/*.c) $(wildcard libs/core/src/*.c) \
 		-o $(ANDROID_BUILD_DIR)/app/src/main/jniLibs/$(ANDROID_ABI)/libengine.so -lm -llog -landroid
 
-	@SDL3_FULL_PATH=$$(find $(ANDROID_BUILD_DIR)/app/build/intermediates -name "libSDL3.so" | head -n 1); \
+	# --- THE EXPLICIT SYMBOL VISIBILITY & EXPORT FIX ---
+	# 1. We pass -fvisibility=default so the compiler doesn't hide the bootstrap entry codes.
+	# 2. We pass -Wl,--export-dynamic to force the linker to leave the entry symbols exposed!
+	@SDL_BOOTSTRAP_SRC=$$(find $(SDL_SRC_DIR) -name "SDL_android_main.c" -o -name "sdl_android_main.c" | head -n 1); \
+	echo "Found embedded SDL Android entry-point at: $$SDL_BOOTSTRAP_SRC"; \
+	SDL3_FULL_PATH=$$(find $(ANDROID_BUILD_DIR)/app/build/intermediates -name "libSDL3.so" | head -n 1); \
 	if [ -z "$$SDL3_FULL_PATH" ]; then \
 		SDL3_FULL_PATH=$$(find $(ANDROID_BUILD_DIR)/app/src/main/jniLibs -name "libSDL3.so" | head -n 1); \
 	fi; \
 	SDL3_DIR=$$(dirname "$$SDL3_FULL_PATH"); \
 	echo "Linking main code layers cleanly with SDL3 system objects..."; \
-	$(NDK_CC) $(AND_CFLAGS) $(AND_INC) -shared -Wl,-soname,libmain.so \
+	$(NDK_CC) $(AND_CFLAGS) -fvisibility=default $(AND_INC) -shared -Wl,-soname,libmain.so -Wl,-rpath,'$$ORIGIN' -Wl,--export-dynamic \
 		app/src/main.c \
+		"$$SDL_BOOTSTRAP_SRC" \
 		-L$(ANDROID_BUILD_DIR)/app/src/main/jniLibs/$(ANDROID_ABI) \
 		-L"$$SDL3_DIR" \
 		-lengine -lSDL3 \
