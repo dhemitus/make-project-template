@@ -8,10 +8,14 @@ make clean
 ```
 
 Recompile the app bundle and installer
+```cli
 bear --use-cc /usr/bin/clang --use-c++ /usr/bin/clang++ -- make dmg
+```
 
 clear macos ui cache db
+```cli
 /System/Library/Frameworks/CoreServices.framework/Frameworks/LaunchServices.framework/Support/lsregister -f build/VulkanApp.app
+```
 
 compile to android app
 ```cli
