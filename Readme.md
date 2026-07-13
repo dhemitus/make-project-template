@@ -10,7 +10,8 @@ bear --use-cc /usr/bin/clang --use-c++ /usr/bin/clang++ -- make dmg
 /System/Library/Frameworks/CoreServices.framework/Frameworks/LaunchServices.framework/Support/lsregister -f build/VulkanApp.app
 
 # compile to android app
-bear -- make android-apk
+```bear -- make android-apk
+```
 
 # install to android device
 adb install -r build/android/app/build/outputs/apk/debug/app-debug.apk
