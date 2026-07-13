@@ -21,11 +21,11 @@ bundle: $(TARGET) shaders icon
 	
 	# 3. Link the clean desktop production binary
 	$(CXX) $(filter-out -fsanitize=address,$(CXXFLAGS)) $(BUILD_DIR)/main_dist.o $(INTERNAL_LIBS) $(EXT_LIBS) \
-		-Wl,-rpath,@executable_path/../Frameworks -o "$(MAC_OS_DIR)/app_main"
+		-Wl,-rpath,@executable_path/../Frameworks -o "$(MAC_OS_DIR)/$(EXC_NAME)"
 	
 	# 4. Copy support asset files, configuration plists, and engine drivers into place
 	#cp $(ASSETS_DIR)/Info.plist "$(CONTENTS)/"
-	@echo '<?xml version="1.0" encoding="UTF-8"?>\n<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://apple.com">\n<plist version="1.0">\n<dict>\n\t<key>CFBundleIconFile</key>\n\t<string>AppIcon.icns</string>\n\t<key>CFBundleExecutable</key>\n\t<string>app_main</string>\n\t<key>CFBundleIdentifier</key>\n\t<string>$(APP_ID)</string>\n\t<key>CFBundleName</key>\n\t<string>$(APP_NAME)</string>\n\t<key>CFBundlePackageType</key>\n\t<string>APPL</string>\n\t<key>CFBundleShortVersionString</key>\n\t<string>$(VERSION)</string>\n\t<key>CFBundleSignature</key>\n\t<string>????</string>\n\t<key>CFBundleSupportedPlatforms</key>\n\t<array>\n\t\t<string>MacOSX</string>\n\t</array>\n\t<key>LSMinimumSystemVersion</key>\n\t<string>11.0</string>\n\t<key>NSHighResolutionCapable</key>\n\t<true/>\n</dict>\n</plist>' > $(CONTENTS)/Info.plist
+	@echo '<?xml version="1.0" encoding="UTF-8"?>\n<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://apple.com">\n<plist version="1.0">\n<dict>\n\t<key>CFBundleIconFile</key>\n\t<string>AppIcon.icns</string>\n\t<key>CFBundleExecutable</key>\n\t<string>$(EXC_NAME)</string>\n\t<key>CFBundleIdentifier</key>\n\t<string>$(APP_ID)</string>\n\t<key>CFBundleName</key>\n\t<string>$(APP_NAME)</string>\n\t<key>CFBundlePackageType</key>\n\t<string>APPL</string>\n\t<key>CFBundleShortVersionString</key>\n\t<string>$(VERSION)</string>\n\t<key>CFBundleSignature</key>\n\t<string>????</string>\n\t<key>CFBundleSupportedPlatforms</key>\n\t<array>\n\t\t<string>MacOSX</string>\n\t</array>\n\t<key>LSMinimumSystemVersion</key>\n\t<string>11.0</string>\n\t<key>NSHighResolutionCapable</key>\n\t<true/>\n</dict>\n</plist>' > $(CONTENTS)/Info.plist
 	cp $(SHADER_BUILD)/*.spv "$(RESOURCES)/shaders/"
 	cp $(LIB_ENGINE) "$(FRAMEWORKS)/"
 	cp $(SDL_BUILD_DIR)/lib/libSDL3*.dylib "$(FRAMEWORKS)/" 2>/dev/null || true
@@ -51,13 +51,13 @@ bundle: $(TARGET) shaders icon
 	
 	# Dynamically target whatever internal tracking name SDL3 embedded during its compilation
 	@SDL_INT_NAME=$$(otool -D "$(FRAMEWORKS)/libSDL3.dylib" | tail -n 1); \
-	install_name_tool -change "$$SDL_INT_NAME" @executable_path/../Frameworks/libSDL3.dylib "$(MAC_OS_DIR)/app_main" 2>/dev/null || true; \
+	install_name_tool -change "$$SDL_INT_NAME" @executable_path/../Frameworks/libSDL3.dylib "$(MAC_OS_DIR)/$(EXC_NAME)" 2>/dev/null || true; \
 	install_name_tool -change "$$SDL_INT_NAME" @loader_path/libSDL3.dylib "$(FRAMEWORKS)/libengine.dylib" 2>/dev/null || true
 	
-	@install_name_tool -change @rpath/libengine.dylib @executable_path/../Frameworks/libengine.dylib "$(MAC_OS_DIR)/app_main" 2>/dev/null || true
-	@install_name_tool -change libengine.dylib @executable_path/../Frameworks/libengine.dylib "$(MAC_OS_DIR)/app_main" 2>/dev/null || true
-	@install_name_tool -change @rpath/libvulkan.1.dylib @executable_path/../Frameworks/libvulkan.1.dylib "$(MAC_OS_DIR)/app_main" 2>/dev/null || true
-	@install_name_tool -change libvulkan.1.dylib @executable_path/../Frameworks/libvulkan.1.dylib "$(MAC_OS_DIR)/app_main" 2>/dev/null || true
+	@install_name_tool -change @rpath/libengine.dylib @executable_path/../Frameworks/libengine.dylib "$(MAC_OS_DIR)/$(EXC_NAME)" 2>/dev/null || true
+	@install_name_tool -change libengine.dylib @executable_path/../Frameworks/libengine.dylib "$(MAC_OS_DIR)/$(EXC_NAME)" 2>/dev/null || true
+	@install_name_tool -change @rpath/libvulkan.1.dylib @executable_path/../Frameworks/libvulkan.1.dylib "$(MAC_OS_DIR)/$(EXC_NAME)" 2>/dev/null || true
+	@install_name_tool -change libvulkan.1.dylib @executable_path/../Frameworks/libvulkan.1.dylib "$(MAC_OS_DIR)/$(EXC_NAME)" 2>/dev/null || true
 	
 	# 6. Clean up temporary tracking tags, attributes, and sign the container
 	xattr -cr "$(APP_BUNDLE)"

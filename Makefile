@@ -1,6 +1,7 @@
 APP_ID        := com.engine.vulkanapp
-APP_NAME    := VulkanApp.app
+APP_NAME      := VulkanApp.app
 VERSION       := 1.0.0
+EXC_NAME      := app_vulkan
 # Define core absolute system tools
 
 export CC     := /usr/bin/clang
@@ -31,7 +32,7 @@ EXT_DIR      := $(ROOT_DIR)/external
 SHADER_BUILD := $(BUILD_DIR)/shaders
 ASSETS_DIR   := $(ROOT_DIR)/assets
 
-TARGET      := $(BIN_DIR)/app_main
+TARGET      := $(BIN_DIR)/$(EXC_NAME)
 TEST_TARGET := $(BIN_DIR)/test_runner
 
 # System Vulkan Integration Configs
