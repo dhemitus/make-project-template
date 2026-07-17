@@ -32,6 +32,10 @@ EXT_DIR      := $(ROOT_DIR)/external
 SHADER_BUILD := $(BUILD_DIR)/shaders
 ASSETS_DIR   := $(ROOT_DIR)/assets
 
+# --- AUTOMATED APP SOURCE AND OBJECT TRACKING MAPS ---
+APP_SRCS    := $(wildcard app/src/*.c)
+APP_OBJS    := $(patsubst app/src/%.c,$(BUILD_DIR)/obj/%.o,$(APP_SRCS))
+
 TARGET      := $(BIN_DIR)/$(EXC_NAME)
 TEST_TARGET := $(BIN_DIR)/test_runner
 
@@ -119,19 +123,43 @@ compile_commands:
 	@cat $(BUILD_DIR)/obj/*.json.tmp 2>/dev/null | awk '{printf "%s%s", (NR==1?"":",\n"), $$0}' >> compile_commands.json
 	@echo "\n]" >> compile_commands.json
 
-$(TARGET): $(BUILD_DIR)/main.o subdirs deps
+# --- THE AD-HOC SIGNED DEVELOPMENT RUNTIME FIX ---
+$(TARGET): $(APP_OBJS) subdirs deps
 	@mkdir -p $(BIN_DIR)
 	@echo "Linking master application target with portable path parameters..."
 	
-	# Clean internal tracking IDs mapping properties before executing final binary assembly passes
+	# 1. Clean and register internal tracking IDs mapping properties
 	@install_name_tool -id $(ROOT_DIR)/libs/libengine.dylib $(ROOT_DIR)/libs/libengine.dylib 2>/dev/null || true
 	@install_name_tool -id $(SDL_BUILD_DIR)/lib/libSDL3.dylib $(SDL_BUILD_DIR)/lib/libSDL3.dylib 2>/dev/null || true
 	
-	$(CXX) $(CXXFLAGS) $< $(INTERNAL_LIBS) $(EXT_LIBS) \
+	# 2. Copy the system Vulkan loader into our local libs/ directory
+	@VULKAN_SYSTEM_DYLIB=$$(pkg-config --variable=libdir vulkan 2>/dev/null)/libvulkan.1.dylib; \
+	if [ -f "$$VULKAN_SYSTEM_DYLIB" ]; then \
+		cp "$$VULKAN_SYSTEM_DYLIB" "$(ROOT_DIR)/libs/"; \
+	elif [ -f "/opt/homebrew/lib/libvulkan.1.dylib" ]; then \
+		cp "/opt/homebrew/lib/libvulkan.1.dylib" "$(ROOT_DIR)/libs/"; \
+	else \
+		cp "/usr/local/lib/libvulkan.1.dylib" "$(ROOT_DIR)/libs/"; \
+	fi
+	@install_name_tool -id @rpath/libvulkan.1.dylib "$(ROOT_DIR)/libs/libvulkan.1.dylib" 2>/dev/null || true
+	
+	# --- THE KERNEL SECURITY SIGNATURE OVERRIDE FIX ---
+	# We force an ad-hoc code signature onto the newly copied library. 
+	# This stops the macOS kernel from instantly firing a SIGKILL: 9 on execution passes!
+	@echo "Signing local Vulkan development binary constraints..."
+	@codesign --force --sign - "$(ROOT_DIR)/libs/libvulkan.1.dylib" 2>/dev/null || true
+	
+	# 3. Link the master executable passing the active objects array
+	$(CXX) $(CXXFLAGS) $(APP_OBJS) $(INTERNAL_LIBS) $(EXT_LIBS) \
 		-Wl,-rpath,$(GLFW_BUILD_DIR)/lib \
 		-Wl,-rpath,$(SDL_BUILD_DIR)/lib \
 		-Wl,-rpath,$(ROOT_DIR)/libs -o $@
 		
+	# 4. Force the application binary to track the local Vulkan loader instead of global links
+	@install_name_tool -change @rpath/libvulkan.1.dylib @rpath/libvulkan.1.dylib $(TARGET) 2>/dev/null || true
+	@install_name_tool -change libvulkan.1.dylib @rpath/libvulkan.1.dylib $(TARGET) 2>/dev/null || true
+	@install_name_tool -change /opt/homebrew/lib/libvulkan.1.dylib @rpath/libvulkan.1.dylib $(TARGET) 2>/dev/null || true
+	
 	@install_name_tool -change libSDL3.0.dylib $(SDL_BUILD_DIR)/lib/libSDL3.dylib $(TARGET) 2>/dev/null || true
 	@install_name_tool -change @rpath/libSDL3.0.dylib $(SDL_BUILD_DIR)/lib/libSDL3.dylib $(TARGET) 2>/dev/null || true
 	@install_name_tool -change libengine.dylib $(ROOT_DIR)/libs/libengine.dylib $(TARGET) 2>/dev/null || true
@@ -140,16 +168,17 @@ $(TARGET): $(BUILD_DIR)/main.o subdirs deps
 
 DEPFLAGS = -MT $@ -MMD -MP -MF $(BUILD_DIR)/obj/$*.d
 
-# --- THE FIX: Written explicitly inside the compilation recipe using a single dollar sign ($*) ---
-$(BUILD_DIR)/main.o: app/src/main.c subdirs shaders
+# --- THE AUTOMATED APP PATTERN COMPILATION FIX ---
+# Wipes out hardcoded file restrictions. Safely captures new files dynamically!
+$(BUILD_DIR)/obj/%.o: app/src/%.c subdirs shaders
 	@mkdir -p $(BUILD_DIR)/obj
-	$(CC) $(DEPFLAGS) -MJ $(BUILD_DIR)/obj/main.json.tmp $(CFLAGS) $(LOCAL_INC) $(GLOBAL_INC) -c $< -o $@
+	$(CC) $(DEPFLAGS) -MJ $(BUILD_DIR)/obj/$*.json.tmp $(CFLAGS) $(LOCAL_INC) $(GLOBAL_INC) -c $< -o $@
 
 run: $(TARGET) shaders
-	@echo "Signing desktop binary permissions..."
-	@codesign --force --sign - $(TARGET)
+	@echo "Signing master desktop binary package layout permissions..."
+	@codesign --force --deep --sign - $(TARGET)
 	@sleep 0.5
-	@echo "Launching Vulkan Engine Workspace..."
+	@echo "Launching Signed Vulkan Engine Workspace..."
 	@$(abspath $(TARGET))
 
 clean:

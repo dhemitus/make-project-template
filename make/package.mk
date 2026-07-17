@@ -7,24 +7,29 @@ FRAMEWORKS  := $(CONTENTS)/Frameworks
 RESOURCES   := $(CONTENTS)/Resources
 DIST_DMG    := $(BUILD_DIR)/VulkanApp_Installer.dmg
 
+# --- DYNAMIC MULTI-OBJECT PRODUCTION SETS MAPS ---
+# We map all compiled workspace objects to clean, ASan-free release variants
+APP_DIST_OBJS := $(patsubst $(BUILD_DIR)/obj/%.o,$(BUILD_DIR)/obj/%_dist.o,$(APP_OBJS))
+
+# Pattern instruction to dynamically compile ALL your app src files for production release deployment
+$(BUILD_DIR)/obj/%_dist.o: app/src/%.c subdirs shaders
+	@mkdir -p $(dir $@)
+	$(CC) $(DEPFLAGS) $(filter-out -fsanitize=address,$(CFLAGS)) $(LOCAL_INC) $(GLOBAL_INC) -c $< -o $@
+
 .PHONY: bundle dmg
 
-bundle: $(TARGET) shaders icon
+bundle: $(TARGET) shaders icon $(APP_DIST_OBJS)
 	@echo "Assembling macOS App Bundle Container Layout..."
 	@mkdir -p "$(MAC_OS_DIR)" "$(FRAMEWORKS)" "$(RESOURCES)/shaders"
 	
-	# 1. Compile main.c into a production object file without ASan to prevent LaunchServices crashes
-	$(CC) $(filter-out -fsanitize=address,$(CFLAGS)) $(LOCAL_INC) $(GLOBAL_INC) -c app/src/main.c -o $(BUILD_DIR)/main_dist.o
-	
-	# 2. Force a clean re-compilation of internal libraries for release deployment
+	# 1. Force a clean re-compilation of internal libraries for release deployment
 	$(MAKE) -C libs BUILD=release
 	
-	# 3. Link the clean desktop production binary
-	$(CXX) $(filter-out -fsanitize=address,$(CXXFLAGS)) $(BUILD_DIR)/main_dist.o $(INTERNAL_LIBS) $(EXT_LIBS) \
+	# 2. Link the clean desktop production binary passing ALL compiled application object files cleanly!
+	$(CXX) $(filter-out -fsanitize=address,$(CXXFLAGS)) $(APP_DIST_OBJS) $(INTERNAL_LIBS) $(EXT_LIBS) \
 		-Wl,-rpath,@executable_path/../Frameworks -o "$(MAC_OS_DIR)/$(EXC_NAME)"
 	
-	# 4. Copy support asset files, configuration plists, and engine drivers into place
-	#cp $(ASSETS_DIR)/Info.plist "$(CONTENTS)/"
+	# 3. Copy support asset files, configuration plists, and engine drivers into place
 	@echo '<?xml version="1.0" encoding="UTF-8"?>\n<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://apple.com">\n<plist version="1.0">\n<dict>\n\t<key>CFBundleIconFile</key>\n\t<string>AppIcon.icns</string>\n\t<key>CFBundleExecutable</key>\n\t<string>$(EXC_NAME)</string>\n\t<key>CFBundleIdentifier</key>\n\t<string>$(APP_ID)</string>\n\t<key>CFBundleName</key>\n\t<string>$(APP_NAME)</string>\n\t<key>CFBundlePackageType</key>\n\t<string>APPL</string>\n\t<key>CFBundleShortVersionString</key>\n\t<string>$(VERSION)</string>\n\t<key>CFBundleSignature</key>\n\t<string>????</string>\n\t<key>CFBundleSupportedPlatforms</key>\n\t<array>\n\t\t<string>MacOSX</string>\n\t</array>\n\t<key>LSMinimumSystemVersion</key>\n\t<string>11.0</string>\n\t<key>NSHighResolutionCapable</key>\n\t<true/>\n</dict>\n</plist>' > $(CONTENTS)/Info.plist
 	cp $(SHADER_BUILD)/*.spv "$(RESOURCES)/shaders/"
 	cp $(LIB_ENGINE) "$(FRAMEWORKS)/"
@@ -44,7 +49,7 @@ bundle: $(TARGET) shaders icon
 		cp "/usr/local/lib/libvulkan.1.dylib" "$(FRAMEWORKS)/"; \
 	fi
 	
-	# 5. Establish local relative framework binding rules inside the app bundle
+	# 4. Establish local relative framework binding rules inside the app bundle
 	@install_name_tool -id @executable_path/../Frameworks/libengine.dylib "$(FRAMEWORKS)/libengine.dylib" 2>/dev/null || true
 	@install_name_tool -id @executable_path/../Frameworks/libSDL3.dylib "$(FRAMEWORKS)/libSDL3.dylib" 2>/dev/null || true
 	@install_name_tool -id @executable_path/../Frameworks/libvulkan.1.dylib "$(FRAMEWORKS)/libvulkan.1.dylib" 2>/dev/null || true
@@ -59,7 +64,7 @@ bundle: $(TARGET) shaders icon
 	@install_name_tool -change @rpath/libvulkan.1.dylib @executable_path/../Frameworks/libvulkan.1.dylib "$(MAC_OS_DIR)/$(EXC_NAME)" 2>/dev/null || true
 	@install_name_tool -change libvulkan.1.dylib @executable_path/../Frameworks/libvulkan.1.dylib "$(MAC_OS_DIR)/$(EXC_NAME)" 2>/dev/null || true
 	
-	# 6. Clean up temporary tracking tags, attributes, and sign the container
+	# 5. Clean up temporary tracking tags, attributes, and sign the container
 	xattr -cr "$(APP_BUNDLE)"
 	codesign --force --deep --sign - "$(APP_BUNDLE)"
 
@@ -76,3 +81,4 @@ dmg: bundle
 	
 	@rm -rf "$(BUILD_DIR)/dmg_stage"
 	@echo "Success! Package created at: $(DIST_DMG)"
+
