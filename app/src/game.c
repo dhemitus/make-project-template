@@ -1,15 +1,38 @@
 #include <preference.h>
 #include <dhemitus/logger.h>
 #include <dhemitus/window.h>
+#include <dhemitus/input.h>
 #include "game.h"
 
-b8 check(b8 val){
-    return val;
+void on_input(window_context *context){
+    LOG_INFO("input type: %d", context->input_event.type);
+    if(context->input_event.type == INPUT_EVENT_TYPE_KEY_DOWN){
+        LOG_INFO("appppp-------------- %d : %d", context->input_event.key_code, context->input_event.key_action);
+    }
+}
+
+void on_window(window_context *context){
+    LOG_INFO("input type: %d", context->input_event.type);
+    if(context->input_event.type == INPUT_EVENT_TYPE_WINDOW_RESIZED){
+        LOG_INFO("[window] Window resized to: %dx%d\n", context->input_event.window_width, context->input_event.window_height);
+    } else {
+        if(context->is_visible){
+            LOG_INFO("window window maximize-------------------------------");
+        } else {
+           LOG_INFO("window window minimize-------------------------------");
+        }
+    }
+
+}
+
+void on_pad(window_context *context, int jid, b8 connected){
+    (void)context;
+    LOG_INFO("[Gamepad] id %d connect: %d", jid, connected);
 }
 
 b8 on_update(window_context *context, void *game_state){
     game *state = (game *)game_state;
-    (void)context;
+
     /*if(context->input_event.mouse_action == BUTTON_ACTION_PRESS){
         LOG_INFO("[Mouse] Click: Button action: %d  at X:%.1f, Y:%.1f (Count: %d)", context->input_event.mouse_action, context->input_event.mouse_x, context->input_event.mouse_y, context->input_event.mouse_clicks);
         LOG_INFO("[Mouse] move callback: Button:  at X:%.1f, Y:%.1f ", context->input_event.mouse_x, context->input_event.mouse_y);

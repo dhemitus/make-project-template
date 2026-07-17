@@ -1,4 +1,5 @@
 #include <SDL3/SDL.h>
+#include "SDL3/SDL_events.h"
 #include "preference.h"
 #include "dhemitus/input.h"
 
@@ -55,6 +56,11 @@ input_event_type sdl_event_to_type(u32 type){
         case SDL_EVENT_MOUSE_WHEEL:         on_type = INPUT_EVENT_TYPE_MOUSE_SCROLL; break;
         case SDL_EVENT_MOUSE_BUTTON_DOWN:   on_type = INPUT_EVENT_TYPE_MOUSE_DOWN; break;
         case SDL_EVENT_MOUSE_BUTTON_UP:     on_type = INPUT_EVENT_TYPE_MOUSE_UP; break;
+        case SDL_EVENT_WINDOW_RESIZED:      on_type = INPUT_EVENT_TYPE_WINDOW_RESIZED; break;
+        case SDL_EVENT_WINDOW_OCCLUDED:     on_type = INPUT_EVENT_TYPE_WINDOW_OCCLUDED; break;
+        case SDL_EVENT_WINDOW_MINIMIZED:    on_type = INPUT_EVENT_TYPE_WINDOW_MINIMIZED; break;
+        case SDL_EVENT_WINDOW_RESTORED:     on_type = INPUT_EVENT_TYPE_WINDOW_RESTORED; break;
+        case SDL_EVENT_WINDOW_MAXIMIZED:    on_type = INPUT_EVENT_TYPE_WINDOW_MAXIMIZED; break;
     }
 
     return on_type;

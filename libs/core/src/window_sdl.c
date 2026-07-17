@@ -20,9 +20,8 @@ void event_handler(window_context *context, const SDL_Event *event){
             if(event->key.key == SDLK_ESCAPE){
                 context->is_running = false;
             }
-
         case SDL_EVENT_KEY_UP:
-            if(context->on_key_callback){
+            if(context->on_input_callback){
                 input_event_type type = sdl_event_to_type(event->type);
                 key_action action = sdl_key_to_keyaction(event->type);
                 key_code key = sdl_key_to_keycode(event->key.scancode);
@@ -33,7 +32,7 @@ void event_handler(window_context *context, const SDL_Event *event){
                 input.keys_down[0] = key;
 
                 context->input_event = input;
-                context->on_key_callback(context);
+                context->on_input_callback(context);
             }
             break;
 
@@ -55,31 +54,31 @@ void event_handler(window_context *context, const SDL_Event *event){
 
         //mouse event
         case SDL_EVENT_MOUSE_MOTION:
-            if(context->on_mouse_move_callback){
+            if(context->on_input_callback){
                 input_event_type type = sdl_event_to_type(event->type);
 
                 input.type = type;
                 input.mouse_x = (double)event->motion.x;
                 input.mouse_y = (double)event->motion.y;
                 context->input_event = input;
-                context->on_mouse_move_callback(context);
+                context->on_input_callback(context);
             }
             break;
         case SDL_EVENT_MOUSE_WHEEL:
-            if(context->on_mouse_scroll_callback){
+            if(context->on_input_callback){
                 input_event_type type = sdl_event_to_type(event->type);
 
                 input.type = type;
                 input.scroll_x = (double)event->wheel.x;
                 input.scroll_y = (double)event->wheel.y;
                 context->input_event = input;
-                context->on_mouse_scroll_callback(context);
+                context->on_input_callback(context);
             }
             break;
         case SDL_EVENT_MOUSE_BUTTON_DOWN:
         case SDL_EVENT_MOUSE_BUTTON_UP:
 
-            if(context->on_mouse_click_callback){
+            if(context->on_input_callback){
                 input_event_type type = sdl_event_to_type(event->type);
                 button_action action = sdl_button_to_buttonaction(event->type);
                 button_type button = sdl_button_to_buttontype(event->button.button);
@@ -92,33 +91,42 @@ void event_handler(window_context *context, const SDL_Event *event){
                 input.mouse_clicks = event->button.clicks;
                 context->input_event = input;
 
-                context->on_mouse_click_callback(context);
+                context->on_input_callback(context);
             }
             break;
 
         //visibility event
         case SDL_EVENT_WINDOW_RESIZED:
-           //if(context->on_resize_callback){
+           if(context->on_window_callback){
+                input_event_type type = sdl_event_to_type(event->type);
+                input.type = type;
                 input.window_width = event->window.data1;
                 input.window_height = event->window.data2;
                 context->input_event = input;
 
-                context->on_resize_callback(context);
-            //}
+                context->on_window_callback(context);
+            }
           
             break;
         case SDL_EVENT_WINDOW_OCCLUDED:
         case SDL_EVENT_WINDOW_MINIMIZED:
-            if(context->on_minimize_callback){
+            if(context->on_window_callback){
                 context->is_visible = false;
-                context->on_minimize_callback(context);
+                input_event_type type = sdl_event_to_type(event->type);
+                input.type = type;
+                context->input_event = input;
+                context->on_window_callback(context);
             }
             break;
         case SDL_EVENT_WINDOW_RESTORED:
         case SDL_EVENT_WINDOW_MAXIMIZED:
-            if(context->on_minimize_callback){
+            if(context->on_window_callback){
                 context->is_visible = true;
-                context->on_minimize_callback(context);
+                input_event_type type = sdl_event_to_type(event->type);
+                input.type = type;
+                context->input_event = input;
+
+                context->on_window_callback(context);
             }
             break;
 
@@ -258,8 +266,6 @@ uint32_t flags = SDL_WINDOW_RESIZABLE;
         SDL_Quit();
         return false;
     }
-    context->is_running = true;
-    context->is_visible = true;
 
     return true;
 }
@@ -296,7 +302,15 @@ void window_swap_buffers(window_context *context){
     SDL_RenderPresent(context->renderer);
 }
 
-void window_set_key_callback(window_context *context, key_callback_func callback){
+void window_set_input_callback(window_context *context, input_callback_func callback){
+    context->on_input_callback = callback;
+}
+
+void window_set_window_callback(window_context *context, window_callback_func callback){
+    context->on_window_callback = callback;
+}
+
+/*void window_set_key_callback(window_context *context, key_callback_func callback){
     context->on_key_callback = callback;
 }
 
@@ -317,7 +331,7 @@ void window_set_resize_callback(window_context *context, resize_callback_func ca
 
 void window_set_minimize_callback(window_context *context, minimize_callback_func callback){
     context->on_minimize_callback = callback;
-}
+}*/
 
 void window_set_gamepad_callback(window_context *context, gamepad_callback_func callback){
     context->on_gamepad_callback = callback;

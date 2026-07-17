@@ -16,45 +16,8 @@
 #include <dhemitus/logger.h>
 #include <dhemitus/asserts.h>
 #include <dhemitus/window.h>
+#include "SDL3/SDL_timer.h"
 #include "game.h"
-
-void on_key(window_context *context) {
-    LOG_INFO("appppp-------------- %d : %d", context->input_event.key_code, context->input_event.key_action);
-}
-
-void on_resize(window_context *context){
-    LOG_INFO("[System] Window resized to: %dx%d\n", context->input_event.window_width, context->input_event.window_height);
-}
-
-void on_click(window_context *context){
-    (void)context;
-    //LOG_INFO("[Mouse] Click: Button type: %d action: %d  at X:%.1f, Y:%.1f (Count: %d)", context->input_event.type, context->input_event.mouse_action, context->input_event.mouse_x, context->input_event.mouse_y, context->input_event.mouse_clicks);
-
-}
-
-void on_move(window_context *context){
-    LOG_INFO("[Mouse] move callback: Button:  at X:%.1f, Y:%.1f ", context->input_event.mouse_x, context->input_event.mouse_y);
-}
-
-void on_scroll(window_context *context){
-    LOG_INFO("[Mouse] scroll: Button:  at X:%.1f, Y:%.1f ", context->input_event.scroll_x, context->input_event.scroll_y);
-}
-
-void on_minimize(window_context *context){
-
-    if(context->is_visible){
-        LOG_INFO("window maximize-------------------------------");
-    } else {
-        LOG_INFO("window minimize-------------------------------");
-    }
-}
-
-void on_pad(window_context *context, int jid, b8 connected){
-    (void)context;
-    LOG_INFO("[Gamepad] id %d connect: %d", jid, connected);
-}
-
-
 
 int main(int argc, char* argv[]) {
     (void)argc; (void)argv;
@@ -83,6 +46,21 @@ int main(int argc, char* argv[]) {
         .window_height = config.height
     };
 
+    game state = {
+        .update_called = 0,
+        .render_called = 0,
+        .time_passed = 0
+    };
+
+    engine_loop engine = {
+        .current_time = SDL_GetTicksNS(),
+        .accumulator = 0,
+        .update_time = (1000 * 1000 * 1000) / config.fps,
+        .on_event_callback = window_poll_events,
+        .on_update_callback = on_update,
+        .on_render_callback = on_render
+    };
+
     window_context context = {
         .window = NULL,
         .renderer = NULL,
@@ -93,46 +71,39 @@ int main(int argc, char* argv[]) {
         .has_input_focus = false       
     };
 
-    game state = {
-        .update_called = 0,
-        .render_called = 0,
-        .time_passed = 0
-    };
+    engine.window_context = &context;
 
-    b8 cek = window_create(&context, &config);
 
-    window_set_key_callback(&context, on_key);
-    window_set_mouse_button_callback(&context, on_click);
-    window_set_mouse_position_callback(&context, on_move);
-    window_set_mouse_scroll_callback(&context, on_scroll);
-
-    window_set_gamepad_callback(&context, on_pad);
-
-    window_set_resize_callback(&context, on_resize);
-    window_set_minimize_callback(&context, on_minimize);
-
-    if(cek){
+    if(!window_create(engine.window_context, &config)){
         LOG_INFO("-----------------maka jadi");
+        return -1;
     }
 
-    engine_loop engine = {
-        .window_context = &context,
-        .current_time = SDL_GetTicksNS(),
-        .accumulator = 0,
-        .update_time = (1000 * 1000 * 1000) / config.fps,
-        .on_event_callback = window_poll_events,
-        .on_update_callback = on_update,
-        .on_render_callback = on_render
-    };
+    window_set_input_callback(engine.window_context, on_input);
+    window_set_window_callback(engine.window_context, on_window);
+    /*window_set_key_callback(engine.window_context, on_key);
+    window_set_mouse_button_callback(engine.window_context, on_click);
+    window_set_mouse_position_callback(engine.window_context, on_move);
+    window_set_mouse_scroll_callback(engine.window_context, on_scroll);
+
+    window_set_gamepad_callback(engine.window_context, on_pad);*/
+
+    //window_set_resize_callback(engine.window_context, on_resize);
+
+    //window_set_minimize_callback(engine.window_context, on_minimize);
 
     SDL_Event event;
 
-    while (window_should_run(&context)) {
+    while (window_should_run(engine.window_context)) {
         //window_poll_events(&context, &event);
         engine_next_loop(&engine, &state, &event);
-        window_swap_buffers(&context);
+        if(engine.window_context->is_visible){
+            window_swap_buffers(engine.window_context);
+        } else {
+            SDL_Delay(16);
+        }
     }
 
-    window_destroy(&context);
+    window_destroy(engine.window_context);
     return 0;
 }
