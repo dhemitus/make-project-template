@@ -71,7 +71,7 @@ LIB_ENGINE    := $(ROOT_DIR)/libs/libengine.dylib
 INTERNAL_LIBS := -L$(ROOT_DIR)/libs -lengine
 
 export GLOBAL_INC := -I$(ROOT_DIR)/include $(EXT_CFLAGS)
-LOCAL_INC  := -I$(ROOT_DIR)/libs/common/include -I$(ROOT_DIR)/libs/core/include
+LOCAL_INC  := -I$(ROOT_DIR)/libs/common/include -I$(ROOT_DIR)/libs/runtime/include -I$(ROOT_DIR)/libs/core/include
 
 # Shader Automation Source Maps
 VERT_SHADERS := $(wildcard shaders/*.vert)

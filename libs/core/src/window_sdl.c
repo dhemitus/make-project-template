@@ -5,23 +5,24 @@
 #include "dhemitus/window.h"
 #include "dhemitus/logger.h"
 #include "preference.h"
+#include "dhemitus/engine.h"
 
-void event_handler(window_context *context, const SDL_Event *event){
-    static float last_finger_dist = -1.0f;
+void event_handler(engine *engine, const SDL_Event *event){
+    //static float last_finger_dist = -1.0f;
     struct input_event input = {0};
 
     switch (event->type) {
         case SDL_EVENT_QUIT:
-            context->is_running = false;
+            engine->is_running = false;
             break;
 
         //key event
         case SDL_EVENT_KEY_DOWN:
             if(event->key.key == SDLK_ESCAPE){
-                context->is_running = false;
+                engine->is_running = false;
             }
         case SDL_EVENT_KEY_UP:
-            if(context->on_input_callback){
+            if(engine->on_input_callback){
                 input_event_type type = sdl_event_to_type(event->type);
                 key_action action = sdl_key_to_keyaction(event->type);
                 key_code key = sdl_key_to_keycode(event->key.scancode);
@@ -31,54 +32,54 @@ void event_handler(window_context *context, const SDL_Event *event){
                 input.key_action = action;
                 input.keys_down[0] = key;
 
-                context->input_event = input;
-                context->on_input_callback(context);
+                engine->window_context->input_event = input;
+                engine->on_input_callback(engine);
             }
             break;
 
         //focus event
         case SDL_EVENT_WINDOW_MOUSE_ENTER:
-            context->has_mouse_focus = true;
+            engine->window_context->has_mouse_focus = true;
             LOG_INFO("[System] Window mouse on focus true");
            break;
         case SDL_EVENT_WINDOW_MOUSE_LEAVE:
-            context->has_mouse_focus = false;
+            engine->window_context->has_mouse_focus = false;
             LOG_INFO("[System] Window mouse on focus false");
             break;
         case SDL_EVENT_WINDOW_FOCUS_GAINED:
-            context->has_input_focus = true;
+            engine->window_context->has_input_focus = true;
             break;
         case SDL_EVENT_WINDOW_FOCUS_LOST:
-            context->has_input_focus = false;
+            engine->window_context->has_input_focus = false;
             break;
 
         //mouse event
         case SDL_EVENT_MOUSE_MOTION:
-            if(context->on_input_callback){
+            if(engine->on_input_callback){
                 input_event_type type = sdl_event_to_type(event->type);
 
                 input.type = type;
                 input.mouse_x = (double)event->motion.x;
                 input.mouse_y = (double)event->motion.y;
-                context->input_event = input;
-                context->on_input_callback(context);
+                engine->window_context->input_event = input;
+                engine->on_input_callback(engine);
             }
             break;
         case SDL_EVENT_MOUSE_WHEEL:
-            if(context->on_input_callback){
+            if(engine->on_input_callback){
                 input_event_type type = sdl_event_to_type(event->type);
 
                 input.type = type;
                 input.scroll_x = (double)event->wheel.x;
                 input.scroll_y = (double)event->wheel.y;
-                context->input_event = input;
-                context->on_input_callback(context);
+                engine->window_context->input_event = input;
+                engine->on_input_callback(engine);
             }
             break;
         case SDL_EVENT_MOUSE_BUTTON_DOWN:
         case SDL_EVENT_MOUSE_BUTTON_UP:
 
-            if(context->on_input_callback){
+            if(engine->on_input_callback){
                 input_event_type type = sdl_event_to_type(event->type);
                 button_action action = sdl_button_to_buttonaction(event->type);
                 button_type button = sdl_button_to_buttontype(event->button.button);
@@ -89,47 +90,47 @@ void event_handler(window_context *context, const SDL_Event *event){
                 input.mouse_x = (double)event->button.x;
                 input.mouse_y = (double)event->button.y;
                 input.mouse_clicks = event->button.clicks;
-                context->input_event = input;
+                engine->window_context->input_event = input;
 
-                context->on_input_callback(context);
+                engine->on_input_callback(engine);
             }
             break;
 
         //visibility event
         case SDL_EVENT_WINDOW_RESIZED:
-           if(context->on_window_callback){
+           if(engine->on_window_callback){
                 input_event_type type = sdl_event_to_type(event->type);
                 input.type = type;
                 input.window_width = event->window.data1;
                 input.window_height = event->window.data2;
-                context->input_event = input;
+                engine->window_context->input_event = input;
 
-                context->on_window_callback(context);
+                engine->on_window_callback(engine);
             }
           
             break;
         case SDL_EVENT_WINDOW_OCCLUDED:
         case SDL_EVENT_WINDOW_MINIMIZED:
-            if(context->on_window_callback){
-                context->is_visible = false;
+            if(engine->on_window_callback){
+                engine->is_visible = false;
                 input_event_type type = sdl_event_to_type(event->type);
                 input.type = type;
-                context->input_event = input;
-                context->on_window_callback(context);
+                engine->window_context->input_event = input;
+                engine->on_window_callback(engine);
             }
             break;
         case SDL_EVENT_WINDOW_RESTORED:
         case SDL_EVENT_WINDOW_MAXIMIZED:
-            if(context->on_window_callback){
-                context->is_visible = true;
+            if(engine->on_window_callback){
+                engine->is_visible = true;
                 input_event_type type = sdl_event_to_type(event->type);
                 input.type = type;
-                context->input_event = input;
+                engine->window_context->input_event = input;
 
-                context->on_window_callback(context);
+                engine->on_window_callback(engine);
             }
             break;
-
+/*
         //controller event
         case SDL_EVENT_GAMEPAD_ADDED:
             if(context->on_gamepad_callback){
@@ -205,7 +206,7 @@ void event_handler(window_context *context, const SDL_Event *event){
                 LOG_INFO("[Gesture] Finger ID %llu dragging. Delta: dX:%.3f, dY:%.3f", event->tfinger.fingerID, event->tfinger.dx, event->tfinger.dy);
             }*/
             
-            break;
+            /*break;*/
     }
 }
 
@@ -279,16 +280,19 @@ void window_destroy(window_context *context){
 }
 
 b8 window_should_run(window_context *context){
-    return context->is_running;
+    (void)context;
+    return true;
 }
 
-b8 window_poll_events(window_context *context, void *event){
+
+b8 window_poll_events(engine *engine, void *event){
     SDL_Event *evn = (SDL_Event *)event;
 
     while (SDL_PollEvent(evn)) {
-        //LOG_INFO("----------------------------------------------------------------------- is it running");
-        event_handler(context, evn);
+        //LOG_INFO("-----------------------------------------------------------------------  is it running");
+        event_handler(engine, evn);
     }
+    return true;
 }
 
 void window_swap_buffers(window_context *context){
@@ -301,37 +305,6 @@ void window_swap_buffers(window_context *context){
     
     SDL_RenderPresent(context->renderer);
 }
-
-void window_set_input_callback(window_context *context, input_callback_func callback){
-    context->on_input_callback = callback;
-}
-
-void window_set_window_callback(window_context *context, window_callback_func callback){
-    context->on_window_callback = callback;
-}
-
-/*void window_set_key_callback(window_context *context, key_callback_func callback){
-    context->on_key_callback = callback;
-}
-
-void window_set_mouse_button_callback(window_context *context, mouse_button_callback_func callback){
-    context->on_mouse_click_callback = callback;
-}
-
-void window_set_mouse_position_callback(window_context *context, mouse_position_callback_func callback){
-    context->on_mouse_move_callback = callback;
-}
-void window_set_mouse_scroll_callback(window_context *context, mouse_scroll_callback_func callback){
-    context->on_mouse_scroll_callback = callback;
-}
-
-void window_set_resize_callback(window_context *context, resize_callback_func callback){
-    context->on_resize_callback = callback;
-}
-
-void window_set_minimize_callback(window_context *context, minimize_callback_func callback){
-    context->on_minimize_callback = callback;
-}*/
 
 void window_set_gamepad_callback(window_context *context, gamepad_callback_func callback){
     context->on_gamepad_callback = callback;

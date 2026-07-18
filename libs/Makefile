@@ -10,8 +10,8 @@ DEPFLAGS = -MT $@ -MMD -MP -MF $(patsubst %.o,%.d,$@)
 LSP_FLAGS = -MJ $(patsubst %.o,%.json.tmp,$@)
 
 # Dynamically map both C and C++ files while preserving subdirectory structures
-SRCS_C   := $(wildcard common/src/*.c) $(wildcard core/src/*.c)
-SRCS_CXX := $(wildcard common/src/*.cpp) $(wildcard core/src/*.cpp)
+SRCS_C   := $(wildcard common/src/*.c) $(wildcard runtime/src/*.c) $(wildcard core/src/*.c)
+SRCS_CXX := $(wildcard common/src/*.cpp) $(wildcard runtime/src/*.cpp) $(wildcard core/src/*.cpp)
 
 OBJS     := $(patsubst %.c,obj/%.o,$(SRCS_C)) $(patsubst %.cpp,obj/%.o,$(SRCS_CXX))
 DEPS     := $(OBJS:.o=.d)
@@ -19,7 +19,7 @@ DEPS     := $(OBJS:.o=.d)
 ROOT_DIR       := $(shell cd .. && pwd)
 SDL_BUILD_DIR  := $(ROOT_DIR)/build/sdl_build
 TARGET         := libengine.dylib
-INC_FLAGS      := -Icommon/include -Icore/include -I../include $(GLOBAL_INC)
+INC_FLAGS      := -Icommon/include -Iruntime/include -Icore/include -I../include $(GLOBAL_INC)
 
 .PHONY: all clean
 
@@ -42,12 +42,20 @@ obj/core/src/%.o: core/src/%.c
 	@mkdir -p $(dir $@)
 	$(CC) $(DEPFLAGS) $(LSP_FLAGS) $(CFLAGS) $(INC_FLAGS) -c $< -o $@
 
+obj/runtime/src/%.o: runtime/src/%.c
+	@mkdir -p $(dir $@)
+	$(CC) $(DEPFLAGS) $(LSP_FLAGS) $(CFLAGS) $(INC_FLAGS) -c $< -o $@
+
 # Rule pattern to compile common and core C++ source files (.cpp) for ImGui
 obj/common/src/%.o: common/src/%.cpp
 	@mkdir -p $(dir $@)
 	$(CXX) $(DEPFLAGS) $(LSP_FLAGS) $(CXXFLAGS) $(INC_FLAGS) -c $< -o $@
 
 obj/core/src/%.o: core/src/%.cpp
+	@mkdir -p $(dir $@)
+	$(CXX) $(DEPFLAGS) $(LSP_FLAGS) $(CXXFLAGS) $(INC_FLAGS) -c $< -o $@
+
+obj/runtime/src/%.o: runtime/src/%.cpp
 	@mkdir -p $(dir $@)
 	$(CXX) $(DEPFLAGS) $(LSP_FLAGS) $(CXXFLAGS) $(INC_FLAGS) -c $< -o $@
 

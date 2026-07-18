@@ -1,4 +1,3 @@
-#include "SDL3/SDL_events.h"
 #include <SDL3/SDL.h>
 #include <SDL3/SDL_vulkan.h>
 #include <vulkan/vulkan.h>
@@ -10,13 +9,14 @@
 #include <unistd.h> // Required for chdir()
 
 #include <dhemitus/input.h>
-#include <dhemitus/loop.h>
+#include <dhemitus/engine.h>
 #include <dhemitus/core.h>
 #include <preference.h>
 #include <dhemitus/logger.h>
 #include <dhemitus/asserts.h>
 #include <dhemitus/window.h>
 #include "SDL3/SDL_timer.h"
+#include "dhemitus/frame_data.h"
 #include "game.h"
 
 int main(int argc, char* argv[]) {
@@ -38,7 +38,7 @@ int main(int argc, char* argv[]) {
         .title = "dhemitus engine",
         .width = 1024,
         .height = 720,
-        .fps = 10
+        .fps = 120
     };
 
     input_event input = {
@@ -52,21 +52,24 @@ int main(int argc, char* argv[]) {
         .time_passed = 0
     };
 
-    engine_loop engine = {
+    engine engine = {
+        .on_event_callback = window_poll_events,
+        .on_update_callback = on_update,
+        .on_render_callback = on_render,
+        .is_running = true,
+        .is_visible = true,
+    };
+
+    frame_data frame_data = {
         .current_time = SDL_GetTicksNS(),
         .accumulator = 0,
         .update_time = (1000 * 1000 * 1000) / config.fps,
-        .on_event_callback = window_poll_events,
-        .on_update_callback = on_update,
-        .on_render_callback = on_render
     };
 
     window_context context = {
         .window = NULL,
         .renderer = NULL,
         .input_event = input,
-        .is_running = true,
-        .is_visible = true,
         .has_mouse_focus = false,
         .has_input_focus = false       
     };
@@ -79,8 +82,8 @@ int main(int argc, char* argv[]) {
         return -1;
     }
 
-    window_set_input_callback(engine.window_context, on_input);
-    window_set_window_callback(engine.window_context, on_window);
+    window_set_input_callback(&engine, on_input);
+    window_set_window_callback(&engine, on_window);
     /*window_set_key_callback(engine.window_context, on_key);
     window_set_mouse_button_callback(engine.window_context, on_click);
     window_set_mouse_position_callback(engine.window_context, on_move);
@@ -92,12 +95,11 @@ int main(int argc, char* argv[]) {
 
     //window_set_minimize_callback(engine.window_context, on_minimize);
 
-    SDL_Event event;
 
-    while (window_should_run(engine.window_context)) {
+    while (engine.is_running) {
         //window_poll_events(&context, &event);
-        engine_next_loop(&engine, &state, &event);
-        if(engine.window_context->is_visible){
+        engine_next_loop(&engine, &state, &frame_data);
+        if(engine.is_visible){
             window_swap_buffers(engine.window_context);
         } else {
             SDL_Delay(16);

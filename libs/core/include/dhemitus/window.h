@@ -5,8 +5,8 @@
 
 typedef struct window_context window_context;
 
-typedef void (*input_callback_func)(window_context *context);
-typedef void (*window_callback_func)(window_context *context);
+//typedef void (*input_callback_func)(window_context *context);
+//typedef void (*window_callback_func)(window_context *context);
 
 typedef void (*key_callback_func)(window_context *context);
 typedef void (*mouse_button_callback_func)(window_context *context);
@@ -27,8 +27,8 @@ struct window_context {
     void *window;
     void *renderer;
     input_event input_event;
-    b8 is_running;
-    b8 is_visible;
+//    b8 is_running;
+//    b8 is_visible;
     b8 has_mouse_focus;
     b8 has_input_focus;
 //    key_callback_func on_key_callback;
@@ -44,8 +44,8 @@ struct window_context {
     gesture_pinch_callback_func on_gesture_pinch_callback;
     gesture_pan_callback_func on_gesture_pan_callback;
 
-    input_callback_func on_input_callback;
-    window_callback_func on_window_callback;
+//    input_callback_func on_input_callback;
+//    window_callback_func on_window_callback;
 };
 
 typedef struct window_config {
@@ -58,11 +58,10 @@ typedef struct window_config {
 DHEMITUS_API b8 window_create(window_context *context, const window_config *config);
 DHEMITUS_API void window_destroy(window_context *context);
 DHEMITUS_API b8 window_should_run(window_context *context);
-DHEMITUS_API b8 window_poll_events(window_context *context, void *event);
 DHEMITUS_API void window_swap_buffers(window_context *context);
 
-DHEMITUS_API void window_set_input_callback(window_context *context, input_callback_func callback);
-DHEMITUS_API void window_set_window_callback(window_context *context, window_callback_func callback);
+//DHEMITUS_API void window_set_input_callback(window_context *context, input_callback_func callback);
+//DHEMITUS_API void window_set_window_callback(window_context *context, window_callback_func callback);
 /*
 DHEMITUS_API void window_set_key_callback(window_context *context, key_callback_func callback);
 DHEMITUS_API void window_set_mouse_button_callback(window_context *context, mouse_button_callback_func callback);

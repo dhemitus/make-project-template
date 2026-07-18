@@ -2,21 +2,22 @@
 #include <dhemitus/logger.h>
 #include <dhemitus/window.h>
 #include <dhemitus/input.h>
+#include <dhemitus/engine.h>
 #include "game.h"
 
-void on_input(window_context *context){
-    LOG_INFO("input type: %d", context->input_event.type);
-    if(context->input_event.type == INPUT_EVENT_TYPE_KEY_DOWN){
-        LOG_INFO("appppp-------------- %d : %d", context->input_event.key_code, context->input_event.key_action);
+void on_input(engine *engine){
+    LOG_INFO("input type: %d", engine->window_context->input_event.type);
+    if(engine->window_context->input_event.type == INPUT_EVENT_TYPE_KEY_DOWN){
+        LOG_INFO("appppp-------------- %d : %d", engine->window_context->input_event.key_code, engine->window_context->input_event.key_action);
     }
 }
 
-void on_window(window_context *context){
-    LOG_INFO("input type: %d", context->input_event.type);
-    if(context->input_event.type == INPUT_EVENT_TYPE_WINDOW_RESIZED){
-        LOG_INFO("[window] Window resized to: %dx%d\n", context->input_event.window_width, context->input_event.window_height);
+void on_window(engine *engine){
+    LOG_INFO("input type: %d", engine->window_context->input_event.type);
+    if(engine->window_context->input_event.type == INPUT_EVENT_TYPE_WINDOW_RESIZED){
+        LOG_INFO("[window] Window resized to: %dx%d\n", engine->window_context->input_event.window_width, engine->window_context->input_event.window_height);
     } else {
-        if(context->is_visible){
+        if(engine->is_visible){
             LOG_INFO("window window maximize-------------------------------");
         } else {
            LOG_INFO("window window minimize-------------------------------");
@@ -51,8 +52,8 @@ b8 on_render(window_context *context, void *game_state, u64 dt){
     state->time_passed += dt;
     (void)context;
     if(state->time_passed > 1000 * 1000 * 1000){
-//        LOG_INFO("update new fps: %.2f", (double)state->update_called);
-//        LOG_INFO("render new fps: %.2f", (double)state->render_called);
+        LOG_INFO("update new fps: %.2f", (double)state->update_called);
+        LOG_INFO("render new fps: %.2f", (double)state->render_called);
 
         state->update_called = 0;
         state->render_called = 0;
