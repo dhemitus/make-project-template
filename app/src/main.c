@@ -15,8 +15,8 @@
 #include <dhemitus/logger.h>
 #include <dhemitus/asserts.h>
 #include <dhemitus/window.h>
-#include "SDL3/SDL_timer.h"
-#include "dhemitus/frame_data.h"
+#include <dhemitus/frame_data.h>
+#include <dhemitus/event.h>
 #include "game.h"
 
 int main(int argc, char* argv[]) {
@@ -34,9 +34,9 @@ int main(int argc, char* argv[]) {
     ASSERTION(1 == 1);
 
     // Spawn window surface framework 
-    window_config config = {
+    game_config config = {
         .title = "dhemitus engine",
-        .width = 1024,
+        .width = 1280,
         .height = 720,
         .fps = 120
     };
@@ -56,6 +56,7 @@ int main(int argc, char* argv[]) {
         .on_event_callback = window_poll_events,
         .on_update_callback = on_update,
         .on_render_callback = on_render,
+        .input_event = &input,
         .is_running = true,
         .is_visible = true,
         .on_input_callback = on_input,
@@ -68,17 +69,7 @@ int main(int argc, char* argv[]) {
         .update_time = 1000000000 / config.fps,
     };
 
-    window_context context = {
-        .window = NULL,
-        .renderer = NULL,
-        .input_event = &input,
-        .has_mouse_focus = false,
-        .has_input_focus = false       
-    };
-
-    engine.window_context = &context;
-
-    if(!engine_create(&engine, &input, &config)){
+    if(!engine_create(&engine, &config)){
         LOG_INFO("-----------------maka jadi");
         return -1;
     }

@@ -1,6 +1,5 @@
 #pragma once
 
-#include "dhemitus/input.h"
 #include "preference.h"
 
 typedef struct window_context window_context;
@@ -23,7 +22,6 @@ typedef void (*gesture_pan_callback_func)(window_context *context, float dx, flo
 struct window_context {
     void *window;
     void *renderer;
-    input_event *input_event;
     b8 has_mouse_focus;
     b8 has_input_focus;
 
@@ -34,14 +32,7 @@ struct window_context {
     gesture_pan_callback_func on_gesture_pan_callback;
 };
 
-typedef struct window_config {
-    const char *title;
-    i32 width;
-    i32 height;
-    i32 fps;
-} window_config;
-
-b8 window_create(window_context *context, const window_config *config);
+b8 window_create(window_context *context, i16 width, i16 height, const char *title);
 void window_destroy(window_context *context);
 void window_swap_buffers(window_context *context);
 

@@ -3,6 +3,7 @@
 #include "dhemitus/window.h"
 #include "preference.h"
 #include "dhemitus/frame_data.h"
+#include "dhemitus/input.h"
 
 typedef struct engine engine;
 
@@ -20,6 +21,8 @@ struct engine {
     b8 is_running;
     b8 is_visible;
 
+    input_event *input_event;
+
     input_callback_func on_input_callback;
     window_callback_func on_window_callback;
 
@@ -28,9 +31,15 @@ struct engine {
     update_callback on_update_callback;
 };
 
-DHEMITUS_API b8 engine_create(engine *engine, input_event *input, const window_config *config);
+typedef struct game_config {
+    const char *title;
+    i16 width;
+    i16 height;
+    i16 fps;
+} game_config;
+
+DHEMITUS_API b8 engine_create(engine *engine, const game_config *config);
 DHEMITUS_API void engine_run(engine *engine, void *game_state, frame_data *frame_data);
 
-DHEMITUS_API b8 engine_next_loop(engine *engine, void *game_state, frame_data *frame_data);
+b8 engine_next_loop(engine *engine, void *game_state, frame_data *frame_data);
 
-DHEMITUS_API b8 window_poll_events(engine *engine, void *event);

@@ -1,22 +1,20 @@
 #include "dhemitus/engine.h"
-#include "dhemitus/input.h"
 #include "dhemitus/logger.h"
 #include "preference.h"
 #include "dhemitus/frame_data.h"
 #include <SDL3/SDL.h>
 
-b8 engine_create(engine *engine, input_event *input, const window_config *config){
-    (void)input;
-/*    window_context context = {
-        .window = NULL,
-        .renderer = NULL,
-        .input_event = input,
-        .has_mouse_focus = false,
-        .has_input_focus = false       
-    };
+window_context context = {
+    .window = NULL,
+    .renderer = NULL,
+    .has_mouse_focus = false,
+    .has_input_focus = false       
+};
 
-    engine->window_context = &context;*/
-    if(!window_create(engine->window_context, config)){
+b8 engine_create(engine *engine, const game_config *config){
+
+    engine->window_context = &context;
+    if(!window_create(engine->window_context, config->width, config->height, config->title)){
         LOG_WARN("window create failed");
         return false;
     }
@@ -26,7 +24,6 @@ b8 engine_create(engine *engine, input_event *input, const window_config *config
 void engine_run(engine *engine, void *game_state, frame_data *frame_data){
 
     while (engine->is_running) {
-        //window_poll_events(&context, &event);
         engine_next_loop(engine, game_state, frame_data);
         if(engine->is_visible){
             window_swap_buffers(engine->window_context);
