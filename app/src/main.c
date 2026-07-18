@@ -58,54 +58,32 @@ int main(int argc, char* argv[]) {
         .on_render_callback = on_render,
         .is_running = true,
         .is_visible = true,
+        .on_input_callback = on_input,
+        .on_window_callback = on_window
     };
 
     frame_data frame_data = {
         .current_time = SDL_GetTicksNS(),
         .accumulator = 0,
-        .update_time = (1000 * 1000 * 1000) / config.fps,
+        .update_time = 1000000000 / config.fps,
     };
 
     window_context context = {
         .window = NULL,
         .renderer = NULL,
-        .input_event = input,
+        .input_event = &input,
         .has_mouse_focus = false,
         .has_input_focus = false       
     };
 
     engine.window_context = &context;
 
-
-    if(!window_create(engine.window_context, &config)){
+    if(!engine_create(&engine, &input, &config)){
         LOG_INFO("-----------------maka jadi");
         return -1;
     }
 
-    window_set_input_callback(&engine, on_input);
-    window_set_window_callback(&engine, on_window);
-    /*window_set_key_callback(engine.window_context, on_key);
-    window_set_mouse_button_callback(engine.window_context, on_click);
-    window_set_mouse_position_callback(engine.window_context, on_move);
-    window_set_mouse_scroll_callback(engine.window_context, on_scroll);
+    engine_run(&engine, &state, &frame_data);
 
-    window_set_gamepad_callback(engine.window_context, on_pad);*/
-
-    //window_set_resize_callback(engine.window_context, on_resize);
-
-    //window_set_minimize_callback(engine.window_context, on_minimize);
-
-
-    while (engine.is_running) {
-        //window_poll_events(&context, &event);
-        engine_next_loop(&engine, &state, &frame_data);
-        if(engine.is_visible){
-            window_swap_buffers(engine.window_context);
-        } else {
-            SDL_Delay(16);
-        }
-    }
-
-    window_destroy(engine.window_context);
     return 0;
 }

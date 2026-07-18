@@ -28,9 +28,9 @@ struct engine {
     update_callback on_update_callback;
 };
 
+DHEMITUS_API b8 engine_create(engine *engine, input_event *input, const window_config *config);
+DHEMITUS_API void engine_run(engine *engine, void *game_state, frame_data *frame_data);
+
 DHEMITUS_API b8 engine_next_loop(engine *engine, void *game_state, frame_data *frame_data);
 
 DHEMITUS_API b8 window_poll_events(engine *engine, void *event);
-DHEMITUS_API void window_set_input_callback(engine *engine, input_callback_func callback);
-DHEMITUS_API void window_set_window_callback(engine *engine, window_callback_func callback);
-

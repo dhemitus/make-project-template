@@ -32,7 +32,7 @@ void event_handler(engine *engine, const SDL_Event *event){
                 input.key_action = action;
                 input.keys_down[0] = key;
 
-                engine->window_context->input_event = input;
+                engine->window_context->input_event = &input;
                 engine->on_input_callback(engine);
             }
             break;
@@ -61,7 +61,7 @@ void event_handler(engine *engine, const SDL_Event *event){
                 input.type = type;
                 input.mouse_x = (double)event->motion.x;
                 input.mouse_y = (double)event->motion.y;
-                engine->window_context->input_event = input;
+                engine->window_context->input_event = &input;
                 engine->on_input_callback(engine);
             }
             break;
@@ -72,7 +72,7 @@ void event_handler(engine *engine, const SDL_Event *event){
                 input.type = type;
                 input.scroll_x = (double)event->wheel.x;
                 input.scroll_y = (double)event->wheel.y;
-                engine->window_context->input_event = input;
+                engine->window_context->input_event = &input;
                 engine->on_input_callback(engine);
             }
             break;
@@ -90,7 +90,7 @@ void event_handler(engine *engine, const SDL_Event *event){
                 input.mouse_x = (double)event->button.x;
                 input.mouse_y = (double)event->button.y;
                 input.mouse_clicks = event->button.clicks;
-                engine->window_context->input_event = input;
+                engine->window_context->input_event = &input;
 
                 engine->on_input_callback(engine);
             }
@@ -103,7 +103,7 @@ void event_handler(engine *engine, const SDL_Event *event){
                 input.type = type;
                 input.window_width = event->window.data1;
                 input.window_height = event->window.data2;
-                engine->window_context->input_event = input;
+                engine->window_context->input_event = &input;
 
                 engine->on_window_callback(engine);
             }
@@ -115,7 +115,7 @@ void event_handler(engine *engine, const SDL_Event *event){
                 engine->is_visible = false;
                 input_event_type type = sdl_event_to_type(event->type);
                 input.type = type;
-                engine->window_context->input_event = input;
+                engine->window_context->input_event = &input;
                 engine->on_window_callback(engine);
             }
             break;
@@ -125,7 +125,7 @@ void event_handler(engine *engine, const SDL_Event *event){
                 engine->is_visible = true;
                 input_event_type type = sdl_event_to_type(event->type);
                 input.type = type;
-                engine->window_context->input_event = input;
+                engine->window_context->input_event = &input;
 
                 engine->on_window_callback(engine);
             }
@@ -278,12 +278,6 @@ void window_destroy(window_context *context){
     SDL_DestroyWindow(context->window);
     SDL_Quit();
 }
-
-b8 window_should_run(window_context *context){
-    (void)context;
-    return true;
-}
-
 
 b8 window_poll_events(engine *engine, void *event){
     SDL_Event *evn = (SDL_Event *)event;
