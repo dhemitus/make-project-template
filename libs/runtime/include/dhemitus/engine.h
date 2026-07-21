@@ -11,8 +11,10 @@ typedef void (*input_callback_func)(engine *engine);
 typedef void (*window_callback_func)(engine *engine);
 
 typedef b8 (*window_event_callback)(engine*, void *event);
-typedef b8 (*render_callback)(window_context*, void *game_state, u64 dt);
-typedef b8 (*update_callback)(window_context*, void *game_state);
+typedef b8 (*render_callback)(void *game_state, u64 dt);
+typedef b8 (*update_callback)(void *game_state);
+
+typedef struct game_config game_config;
 
 struct engine {
     void *game_state;
@@ -22,6 +24,7 @@ struct engine {
     b8 is_visible;
 
     input_event *input_event;
+    game_config *config;
 
     input_callback_func on_input_callback;
     window_callback_func on_window_callback;
@@ -31,15 +34,15 @@ struct engine {
     update_callback on_update_callback;
 };
 
-typedef struct game_config {
+struct game_config {
     const char *title;
     i16 width;
     i16 height;
     i16 fps;
-} game_config;
+};
 
-DHEMITUS_API b8 engine_create(engine *engine, const game_config *config);
-DHEMITUS_API void engine_run(engine *engine, void *game_state, frame_data *frame_data);
+DHEMITUS_API b8 engine_create(engine *engine);
+DHEMITUS_API void engine_run(engine *engine);
 
-b8 engine_next_loop(engine *engine, void *game_state, frame_data *frame_data);
+b8 engine_next_loop(engine *engine, frame_data *frame_data);
 

@@ -183,6 +183,7 @@ run: $(TARGET) shaders
 
 clean:
 	rm -rf $(BUILD_DIR)
+	rm "$(ROOT_DIR)/libs/libvulkan.1.dylib"
 	$(MAKE) -C libs clean
 
 # Modular Make Targets Modules

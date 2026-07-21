@@ -3,42 +3,21 @@
 #include <vulkan/vulkan.h>
 #include <SDL3/SDL_main.h>
 
-#include <stdio.h>
-#include <stdbool.h>
-#include <stdlib.h>
-#include <unistd.h> // Required for chdir()
-
 #include <dhemitus/input.h>
 #include <dhemitus/engine.h>
-#include <dhemitus/core.h>
-#include <preference.h>
-#include <dhemitus/logger.h>
-#include <dhemitus/asserts.h>
-#include <dhemitus/window.h>
-#include <dhemitus/frame_data.h>
 #include <dhemitus/event.h>
+#include <dhemitus/platform.h>
 #include "game.h"
+#include <preference.h>
+#include <entry.h>
 
-int main(int argc, char* argv[]) {
-    (void)argc; (void)argv;
+b8 engine_init(engine *engine){
 
-    printf("[Engine] Initializing sub-modules...\n");
-    int result = math_add(5, 10);
-    LOG_INFO("[Engine] Test function returned value: %d", result);
-    LOG_FATAL("std::vector<const char*> enabledInstanceExtensions; fatal situation: %f", 3.14f);
-    LOG_ERROR(" std::vector<const char*> enabledInstanceExtensions;error situation: %f", 3.14f);
-    LOG_WARN(" std::vector<const char*> enabledInstanceExtensions;error situation: %f", 3.14f);
-    LOG_INFO(" std::vector<const char*> enabledInstanceExtensions;error situation: %f", 3.14f);
-    LOG_DEBUG(" std::vector<const char*> enabledInstanceExtensions;error situation: %f", 3.14f);
-    LOG_TRACE(" std::vector<const char*> enabledInstanceExtensions;error situation: %f", 3.14f);
-    ASSERTION(1 == 1);
-
-    // Spawn window surface framework 
     game_config config = {
         .title = "dhemitus engine",
         .width = 1280,
         .height = 720,
-        .fps = 120
+        .fps = 60
     };
 
     input_event input = {
@@ -46,35 +25,24 @@ int main(int argc, char* argv[]) {
         .window_height = config.height
     };
 
+    engine->on_event_callback = window_poll_events;
+    engine->on_update_callback = on_update;
+    engine->on_render_callback = on_render;
+    engine->input_event = &input;
+    engine->config = &config;
+    engine->is_running = true;
+    engine->is_visible = true;
+    engine->on_input_callback = on_input;
+    engine->on_window_callback = on_window;
+    engine->game_state = allocate_memory(sizeof(game), false);
     game state = {
         .update_called = 0,
         .render_called = 0,
         .time_passed = 0
     };
 
-    engine engine = {
-        .on_event_callback = window_poll_events,
-        .on_update_callback = on_update,
-        .on_render_callback = on_render,
-        .input_event = &input,
-        .is_running = true,
-        .is_visible = true,
-        .on_input_callback = on_input,
-        .on_window_callback = on_window
-    };
+    engine->game_state = &state;
 
-    frame_data frame_data = {
-        .current_time = SDL_GetTicksNS(),
-        .accumulator = 0,
-        .update_time = 1000000000 / config.fps,
-    };
-
-    if(!engine_create(&engine, &config)){
-        LOG_INFO("-----------------maka jadi");
-        return -1;
-    }
-
-    engine_run(&engine, &state, &frame_data);
-
-    return 0;
+    return true;
 }
+

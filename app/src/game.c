@@ -31,9 +31,8 @@ void on_pad(window_context *context, int jid, b8 connected){
     LOG_INFO("[Gamepad] id %d connect: %d", jid, connected);
 }
 
-b8 on_update(window_context *context, void *game_state){
+b8 on_update(void *game_state){
     game *state = (game *)game_state;
-    (void)context;
 
     /*if(context->input_event.mouse_action == BUTTON_ACTION_PRESS){
         LOG_INFO("[Mouse] Click: Button action: %d  at X:%.1f, Y:%.1f (Count: %d)", context->input_event.mouse_action, context->input_event.mouse_x, context->input_event.mouse_y, context->input_event.mouse_clicks);
@@ -47,11 +46,10 @@ b8 on_update(window_context *context, void *game_state){
     return true;
 }
 
-b8 on_render(window_context *context, void *game_state, u64 dt){
+b8 on_render(void *game_state, u64 dt){
     game *state = (game *)game_state;
     state->render_called += 1;
     state->time_passed += dt;
-    (void)context;
     if(state->time_passed > 1000 * 1000 * 1000){
         LOG_INFO("update new fps: %.2f", (double)state->update_called);
         LOG_INFO("render new fps: %.2f", (double)state->render_called);
