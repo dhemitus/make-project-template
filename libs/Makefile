@@ -1,17 +1,31 @@
-
 # --- FUTURE-PROOF ENGINE CORE MAKEFILE ---
 # Fully handles both C (.c) and C++ (.cpp) source paths natively for Dear ImGui!
 CC       := clang
 CXX      := clang++
-CFLAGS   := -arch $(shell uname -m) -Wall -Wextra -pedantic -std=c17 -O2 -g -fPIC -fvisibility=hidden
-CXXFLAGS := -arch $(shell uname -m) -Wall -Wextra -pedantic -std=c++17 -O2 -g -fPIC -fvisibility=hidden
+#CFLAGS   := -arch $(shell uname -m) -Wall -Wextra -pedantic -std=c17 -O2 -g -fPIC -fvisibility=hidden
+#CXXFLAGS := -arch $(shell uname -m) -Wall -Wextra -pedantic -std=c++17 -O2 -g -fPIC -fvisibility=hidden
+
+# Inherit master settings from root Makefile
+#override CFLAGS   += -fPIC -fvisibility=hidden
+#override CXXFLAGS += -fPIC -fvisibility=hidden
+LIBS_CFLAGS   := $(CFLAGS) -fPIC -fvisibility=hidden
+LIBS_CXXFLAGS := $(CXXFLAGS) -fPIC -fvisibility=hidden
+
+# --- THE ADDRESS SANITIZER MATCH VALVE ---
+# If building in debug mode, the library MUST match the main app's sanitizer configurations!
+SAN_LINK :=
+ifeq ($(BUILD),debug)
+#    override CFLAGS   += -fsanitize=address
+#    override CXXFLAGS += -fsanitize=address
+	SAN_LINK          := -fsanitize=address
+endif
 
 DEPFLAGS = -MT $@ -MMD -MP -MF $(patsubst %.o,%.d,$@)
 LSP_FLAGS = -MJ $(patsubst %.o,%.json.tmp,$@)
 
 # Dynamically map both C and C++ files while preserving subdirectory structures
-SRCS_C   := $(wildcard common/src/*.c) $(wildcard runtime/src/*.c) $(wildcard core/src/*.c)
-SRCS_CXX := $(wildcard common/src/*.cpp) $(wildcard runtime/src/*.cpp) $(wildcard core/src/*.cpp)
+SRCS_C   := $(wildcard common/src/*.c) $(wildcard runtime/src/*.c) $(wildcard core/src/*.c) $(wildcard renderer/src/*.c)
+SRCS_CXX := $(wildcard common/src/*.cpp) $(wildcard runtime/src/*.cpp) $(wildcard core/src/*.cpp) $(wildcard renderer/src/*.cpp)
 
 OBJS     := $(patsubst %.c,obj/%.o,$(SRCS_C)) $(patsubst %.cpp,obj/%.o,$(SRCS_CXX))
 DEPS     := $(OBJS:.o=.d)
@@ -19,14 +33,14 @@ DEPS     := $(OBJS:.o=.d)
 ROOT_DIR       := $(shell cd .. && pwd)
 SDL_BUILD_DIR  := $(ROOT_DIR)/build/sdl_build
 TARGET         := libengine.dylib
-INC_FLAGS      := -Icommon/include -Iruntime/include -Icore/include -I../include $(GLOBAL_INC)
+INC_FLAGS      := -Icommon/include -Iruntime/include -Icore/include -Irenderer/include -I../include $(GLOBAL_INC)
 
 .PHONY: all clean
 
 all: $(TARGET)
 
 $(TARGET): $(OBJS)
-	$(CXX) -shared -Wl,-install_name,@rpath/$(TARGET) \
+	$(CXX) -shared $(SAN_LINK) -Wl,-install_name,@rpath/$(TARGET) \
 		-L$(SDL_BUILD_DIR)/lib -lSDL3 \
 		-o $@ $^
 	@mkdir -p ../build/obj
@@ -36,28 +50,36 @@ $(TARGET): $(OBJS)
 # Rule pattern to compile common and core C source files (.c)
 obj/common/src/%.o: common/src/%.c
 	@mkdir -p $(dir $@)
-	$(CC) $(DEPFLAGS) $(LSP_FLAGS) $(CFLAGS) $(INC_FLAGS) -c $< -o $@
+	$(CC) $(DEPFLAGS) $(LSP_FLAGS) $(LIBS_CFLAGS) $(INC_FLAGS) -c $< -o $@
 
 obj/core/src/%.o: core/src/%.c
 	@mkdir -p $(dir $@)
-	$(CC) $(DEPFLAGS) $(LSP_FLAGS) $(CFLAGS) $(INC_FLAGS) -c $< -o $@
+	$(CC) $(DEPFLAGS) $(LSP_FLAGS) $(LIBS_CFLAGS) $(INC_FLAGS) -c $< -o $@
 
 obj/runtime/src/%.o: runtime/src/%.c
 	@mkdir -p $(dir $@)
-	$(CC) $(DEPFLAGS) $(LSP_FLAGS) $(CFLAGS) $(INC_FLAGS) -c $< -o $@
+	$(CC) $(DEPFLAGS) $(LSP_FLAGS) $(LIBS_CFLAGS) $(INC_FLAGS) -c $< -o $@
+
+obj/renderer/src/%.o: renderer/src/%.c
+	@mkdir -p $(dir $@)
+	$(CC) $(DEPFLAGS) $(LSP_FLAGS) $(LIBS_CFLAGS) $(INC_FLAGS) -c $< -o $@
 
 # Rule pattern to compile common and core C++ source files (.cpp) for ImGui
 obj/common/src/%.o: common/src/%.cpp
 	@mkdir -p $(dir $@)
-	$(CXX) $(DEPFLAGS) $(LSP_FLAGS) $(CXXFLAGS) $(INC_FLAGS) -c $< -o $@
+	$(CXX) $(DEPFLAGS) $(LSP_FLAGS) $(LIBS_CXXFLAGS) $(INC_FLAGS) -c $< -o $@
 
 obj/core/src/%.o: core/src/%.cpp
 	@mkdir -p $(dir $@)
-	$(CXX) $(DEPFLAGS) $(LSP_FLAGS) $(CXXFLAGS) $(INC_FLAGS) -c $< -o $@
+	$(CXX) $(DEPFLAGS) $(LSP_FLAGS) $(LIBS_CXXFLAGS) $(INC_FLAGS) -c $< -o $@
 
 obj/runtime/src/%.o: runtime/src/%.cpp
 	@mkdir -p $(dir $@)
-	$(CXX) $(DEPFLAGS) $(LSP_FLAGS) $(CXXFLAGS) $(INC_FLAGS) -c $< -o $@
+	$(CXX) $(DEPFLAGS) $(LSP_FLAGS) $(LIBS_CXXFLAGS) $(INC_FLAGS) -c $< -o $@
+
+obj/renderer/src/%.o: renderer/src/%.cpp
+	@mkdir -p $(dir $@)
+	$(CXX) $(DEPFLAGS) $(LSP_FLAGS) $(LIBS_CXXFLAGS) $(INC_FLAGS) -c $< -o $@
 
 clean:
 	rm -rf obj $(TARGET)

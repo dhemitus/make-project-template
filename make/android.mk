@@ -20,6 +20,8 @@ AND_CXXFLAGS := -target aarch64-linux-android$(ANDROID_API) -Wall -Wextra -std=c
 AND_INC := -I$(ROOT_DIR)/include \
            -I$(ROOT_DIR)/libs/common/include \
            -I$(ROOT_DIR)/libs/core/include \
+           -I$(ROOT_DIR)/libs/runtime/include \
+           -I$(ROOT_DIR)/libs/renderer/include \
            -I$(SDL_SRC_DIR)/include \
 		   -I$(SDL_SRC_DIR)/include/SDL3 \
            -I$(ROOT_DIR)/external/imgui \
@@ -97,7 +99,7 @@ android-apk: android-init
 	
 	# Compile common.c and core.c into your internal engine dynamic framework library
 	$(NDK_CC) $(AND_CFLAGS) $(AND_INC) -shared -Wl,-soname,libengine.so \
-		$(wildcard libs/common/src/*.c) $(wildcard libs/core/src/*.c) \
+		$(wildcard libs/common/src/*.c) $(wildcard libs/core/src/*.c) $(wildcard libs/runtime/src/*.c) $(wildcard libs/renderer/src/*.c) \
 		-o $(ANDROID_BUILD_DIR)/app/src/main/jniLibs/$(ANDROID_ABI)/libengine.so -lm -llog -landroid
 
 	# --- THE EXPLICIT SYMBOL VISIBILITY & EXPORT FIX ---

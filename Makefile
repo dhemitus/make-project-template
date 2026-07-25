@@ -15,13 +15,14 @@ CLANG_FORMAT := clang-format
 NATIVE_ARCH := -arch $(shell uname -m)
 
 # Build Profiles (Clean and exported safely to external tools)
-BUILD ?= release
+export BUILD ?= release
+
 ifeq ($(BUILD),debug)
     export CFLAGS   := $(NATIVE_ARCH) -Wall -Wextra -pedantic -std=c17 -g -O0 -DDEBUG -fsanitize=address
     export CXXFLAGS := $(NATIVE_ARCH) -Wall -Wextra -std=c++17 -g -O0 -DDEBUG -fsanitize=address
 else
-    export CFLAGS   := $(NATIVE_ARCH) -Wall -Wextra -pedantic -std=c17 -O3 -DNDEBUG
-    export CXXFLAGS := $(NATIVE_ARCH) -Wall -Wextra -std=c++17 -O3 -DNDEBUG
+    export CFLAGS   := $(NATIVE_ARCH) -Wall -Wextra -pedantic -std=c17 -O3 -DNDEBUG -DRELEASE=1
+    export CXXFLAGS := $(NATIVE_ARCH) -Wall -Wextra -std=c++17 -O3 -DNDEBUG -DRELEASE=1
 endif
 
 # Absolute Paths Configuration
@@ -71,7 +72,7 @@ LIB_ENGINE    := $(ROOT_DIR)/libs/libengine.dylib
 INTERNAL_LIBS := -L$(ROOT_DIR)/libs -lengine
 
 export GLOBAL_INC := -I$(ROOT_DIR)/include $(EXT_CFLAGS)
-LOCAL_INC  := -I$(ROOT_DIR)/libs/common/include -I$(ROOT_DIR)/libs/runtime/include -I$(ROOT_DIR)/libs/core/include
+LOCAL_INC  := -I$(ROOT_DIR)/libs/common/include -I$(ROOT_DIR)/libs/runtime/include -I$(ROOT_DIR)/libs/core/include -I$(ROOT_DIR)/libs/renderer/include
 
 # Shader Automation Source Maps
 VERT_SHADERS := $(wildcard shaders/*.vert)

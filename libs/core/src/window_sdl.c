@@ -1,39 +1,46 @@
 #include <SDL3/SDL.h>
 #include <SDL3/SDL_vulkan.h>
-#include <math.h>
+#include "dhemitus/engine.h"
 #include "dhemitus/window.h"
 #include "dhemitus/logger.h"
 #include "preference.h"
 
-void is_vulkan_support(SDL_Window *window){
-    (void)window;
+const char *const *get_instance_extensions(u32 *count){
+    const char *const *exts = SDL_Vulkan_GetInstanceExtensions(count);
+
+    return exts;
+}
+
+void is_render_backend_support(void){
     if(!SDL_Vulkan_LoadLibrary(NULL)){
         LOG_ERROR("----------------------------------------------------------------------------------this device not vulkan support");
-        SDL_Log("----------------------------------------------------------------------------------this device not vulkan support");
         return;
     }
 
     u32 ex_count = 0;
-    const char *const *exts = SDL_Vulkan_GetInstanceExtensions(&ex_count);
+    const char *const *exts = get_instance_extensions(&ex_count);
 
     if(exts == NULL || ex_count == 0){
         LOG_ERROR("----------------------------------------------------------------------------------fetch extension failed");
-        SDL_Log("fetch extension failed");
     } else {
-        LOG_INFO("----------------------------------------------------------------------------------fetch extension succeed");
-        SDL_Log("----------------------------------------------------------------------------------fetch extension succeed");
+        LOG_INFO("----------------------------------------------------------------------------------fetch extension succeed %u", ex_count);
+    }
+
+    for(u32 i = 0; i < ex_count; ++i){
+        LOG_INFO("the extension is: %s", exts[i]);
     }
 
     SDL_Vulkan_UnloadLibrary();
 }
 
-b8 window_create(window_context *context, i16 width, i16 height, const char *title){
+b8 window_create(window_context *context, int width, int height, const char *title){
 
     // Initialize SDL3 Video subsystems
     if (!SDL_Init(SDL_INIT_VIDEO | SDL_INIT_EVENTS | SDL_INIT_GAMEPAD)) {
         LOG_FATAL("----------------------------------------------------------------------------------initiate window failed");
         return false;
     }
+
 uint32_t flags = SDL_WINDOW_RESIZABLE;
 
 #ifdef __ANDROID__
@@ -53,15 +60,9 @@ uint32_t flags = SDL_WINDOW_RESIZABLE;
         return false;
     }
 
-    is_vulkan_support(context->window);
+    LOG_INFO("%s","create window success");
 
-    context->renderer = SDL_CreateRenderer(context->window, NULL);
-    if (!context->renderer) {
-        LOG_FATAL("----------------------------------------------------------------------------------create renderer failed");
-        SDL_DestroyWindow(context->window);
-        SDL_Quit();
-        return false;
-    }
+    is_render_backend_support();
 
     return true;
 }
@@ -69,20 +70,8 @@ uint32_t flags = SDL_WINDOW_RESIZABLE;
 void window_destroy(window_context *context){
     if(!context) return;
 
-    SDL_DestroyRenderer(context->renderer);
     SDL_DestroyWindow(context->window);
     SDL_Quit();
-}
-
-void window_swap_buffers(window_context *context){
-    if(context->has_input_focus) {
-        SDL_SetRenderDrawColor(context->renderer, 45, 55, 75, 255);
-    }else {
-        SDL_SetRenderDrawColor(context->renderer, 25, context->has_mouse_focus ? 35 : 25, 30, 255);
-    }
-    SDL_RenderClear(context->renderer);
-    
-    SDL_RenderPresent(context->renderer);
 }
 
 void window_set_gamepad_callback(window_context *context, gamepad_callback_func callback){

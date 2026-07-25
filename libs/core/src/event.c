@@ -1,37 +1,33 @@
+#include "SDL3/SDL_events.h"
 #include "preference.h"
 #include "dhemitus/event.h"
 #include "dhemitus/engine.h"
 #include "dhemitus/logger.h"
+#include "dhemitus/memory.h"
+#include "dhemitus/dynamic_array.h"
+#include "dhemitus/input.h"
 #include <SDL3/SDL.h>
 
 void event_handler(engine *engine, const SDL_Event *event){
     //static float last_finger_dist = -1.0f;
-    struct input_event input = {0};
+    b8 pressed = KEY_UNKNOWN;
+    key_code key = KEY_UNKNOWN;
+    button_type button = BUTTON_UNDEFINED;
+    event_context context = {0};
 
     switch (event->type) {
         case SDL_EVENT_QUIT:
-            engine->is_running = false;
+            event_send(EVENT_CODE_APPLICATION_QUIT, 0, context);
             break;
 
         //key event
         case SDL_EVENT_KEY_DOWN:
-            if(event->key.key == SDLK_ESCAPE){
-                engine->is_running = false;
-            }
         case SDL_EVENT_KEY_UP:
-            if(engine->on_input_callback){
-                input_event_type type = sdl_event_to_type(event->type);
-                key_action action = sdl_key_to_keyaction(event->type);
-                key_code key = sdl_key_to_keycode(event->key.scancode);
+            key = sdl_key_to_keycode(event->key.scancode);
 
-                input.type = type;
-                input.key_code = key;
-                input.key_action = action;
-                input.keys_down[0] = key;
+            pressed = event->type == SDL_EVENT_KEY_DOWN;
+            input_process_key(key, pressed);
 
-                engine->input_event = &input;
-                engine->on_input_callback(engine);
-            }
             break;
 
         //focus event
@@ -52,18 +48,13 @@ void event_handler(engine *engine, const SDL_Event *event){
 
         //mouse event
         case SDL_EVENT_MOUSE_MOTION:
-            if(engine->on_input_callback){
-                input_event_type type = sdl_event_to_type(event->type);
 
-                input.type = type;
-                input.mouse_x = (double)event->motion.x;
-                input.mouse_y = (double)event->motion.y;
-                engine->input_event = &input;
-                engine->on_input_callback(engine);
-            }
+            input_process_mouse_move(event->motion.x, event->motion.y);
+
             break;
         case SDL_EVENT_MOUSE_WHEEL:
-            if(engine->on_input_callback){
+            //still how to
+            /*if(engine->on_input_callback){
                 input_event_type type = sdl_event_to_type(event->type);
 
                 input.type = type;
@@ -71,61 +62,36 @@ void event_handler(engine *engine, const SDL_Event *event){
                 input.scroll_y = (double)event->wheel.y;
                 engine->input_event = &input;
                 engine->on_input_callback(engine);
-            }
+
+            }*/
             break;
         case SDL_EVENT_MOUSE_BUTTON_DOWN:
         case SDL_EVENT_MOUSE_BUTTON_UP:
+            button = sdl_button_to_buttontype(event->button.button);
 
-            if(engine->on_input_callback){
-                input_event_type type = sdl_event_to_type(event->type);
-                button_action action = sdl_button_to_buttonaction(event->type);
-                button_type button = sdl_button_to_buttontype(event->button.button);
-
-                input.type = type;
-                input.mouse_button = button;
-                input.mouse_action = action;
-                input.mouse_x = (double)event->button.x;
-                input.mouse_y = (double)event->button.y;
-                input.mouse_clicks = event->button.clicks;
-                engine->input_event = &input;
-
-                engine->on_input_callback(engine);
+            pressed = event->type == SDL_EVENT_MOUSE_BUTTON_DOWN;
+            if(button != BUTTON_NUM && button != BUTTON_UNDEFINED){
+                input_process_button(button, pressed);
             }
+
             break;
 
         //visibility event
         case SDL_EVENT_WINDOW_RESIZED:
-           if(engine->on_window_callback){
-                input_event_type type = sdl_event_to_type(event->type);
-                input.type = type;
-                input.window_width = event->window.data1;
-                input.window_height = event->window.data2;
-                engine->input_event = &input;
 
-                engine->on_window_callback(engine);
-            }
-          
+            context.data.u16[0] = event->window.data1;
+            context.data.u16[1] = event->window.data2;
+            event_send(EVENT_CODE_WINDOW_RESIZED, 0, context);
             break;
         case SDL_EVENT_WINDOW_OCCLUDED:
         case SDL_EVENT_WINDOW_MINIMIZED:
-            if(engine->on_window_callback){
-                engine->is_visible = false;
-                input_event_type type = sdl_event_to_type(event->type);
-                input.type = type;
-                engine->input_event = &input;
-                engine->on_window_callback(engine);
-            }
+            LOG_INFO("minimize from event");
+            event_send(EVENT_CODE_WINDOW_MINIMIZED, 0, context);
             break;
         case SDL_EVENT_WINDOW_RESTORED:
         case SDL_EVENT_WINDOW_MAXIMIZED:
-            if(engine->on_window_callback){
-                engine->is_visible = true;
-                input_event_type type = sdl_event_to_type(event->type);
-                input.type = type;
-                engine->input_event = &input;
-
-                engine->on_window_callback(engine);
-            }
+            LOG_INFO("maximize from event");
+            event_send(EVENT_CODE_WINDOW_MAXIMIZED, 0, context);
             break;
 /*
         //controller event
@@ -215,5 +181,111 @@ b8 window_poll_events(engine *engine, void *event){
         event_handler(engine, evn);
     }
     return true;
+}
+
+typedef struct registered_event {
+    void *listener;
+    on_event_func callback;
+} registered_event;
+
+typedef struct event_code_entry {
+    registered_event *events;
+} event_code_entry;
+
+#define MAX_MESSAGE_CODES 16384
+
+typedef struct event_state {
+    event_code_entry registered[MAX_MESSAGE_CODES];
+} event_state;
+
+static b8 initialized = false;
+static event_state state;
+
+b8 event_init(void){
+    if(initialized == true){
+        return  false;
+    }
+
+    initialized = false;
+    zero_memory(&state, sizeof(state));
+    initialized = true;
+
+    LOG_INFO("event init");
+    return true;
+}
+
+void event_destroy(void){
+    for(u16 i = 0; i < MAX_MESSAGE_CODES; ++i){
+        if(state.registered[i].events != 0){
+            dynamic_array_destroy(state.registered[i].events);
+            state.registered[i].events = 0;
+        }
+    }
+}
+
+b8 event_register(u16 code, void *listener, on_event_func on_event){
+    if(initialized == false){
+        return  false;
+    }
+
+    if(state.registered[code].events == 0){
+        state.registered[code].events = dynamic_array_create(registered_event);
+    }
+
+    u64 registered_count = dynamic_array_length(state.registered[code].events);
+    for(u64 i = 0; i < registered_count; ++i){
+        if(state.registered[code].events[i].listener == listener){
+            return false;
+        }
+    }
+
+    registered_event event;
+    event.listener = listener;
+    event.callback = on_event;
+    dynamic_array_push(state.registered[code].events, event);
+
+    return true;
+}
+
+b8 event_unregister(u16 code, void *listener, on_event_func on_event){
+    if(initialized == false){
+        return  false;
+    }
+
+    if(state.registered[code].events == 0){
+        return false;
+    }
+
+    u64 registered_count = dynamic_array_length(state.registered[code].events);
+    for(u64 i = 0; i < registered_count; ++i){
+        registered_event e = state.registered[code].events[i];
+        if(e.listener == listener && e.callback == on_event){
+            registered_event popped_event;
+            dynamic_array_pop_at(state.registered[code].events, i, &popped_event);
+            return true;
+        }
+    }
+
+    return  false;
+}
+
+b8 event_send(u16 code, void *sender, event_context context){
+    if(initialized == false){
+        return  false;
+    }
+
+    if(state.registered[code].events == 0){
+        return false;
+    }
+
+    u64 registered_count = dynamic_array_length(state.registered[code].events);
+    for(u64 i = 0; i < registered_count; ++i){
+        registered_event e = state.registered[code].events[i];
+        if(e.callback(code, sender, e.listener, context)){
+            return true;
+        }
+    }
+
+    return  false;
 }
 

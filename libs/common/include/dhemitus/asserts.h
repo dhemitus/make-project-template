@@ -31,7 +31,7 @@ DHEMITUS_API void report_assertion_failure(const char *expression, const char *m
         }                                                                   \
     }
 
-#ifdef _DEBUG
+#ifdef DEBUG
 #define ASSERTION_DEBUG(expr)                                           \
     {                                                                   \
         if (expr) {                                                     \

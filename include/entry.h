@@ -2,11 +2,15 @@
 #include "dhemitus/asserts.h"
 #include "dhemitus/engine.h"
 #include "preference.h"
+#include "dhemitus/memory.h"
 
 extern b8 engine_init(engine *engine);
+extern b8 engine_clear(engine *engine);
 
 int main(int argc, char* argv[]) {
     (void)argc; (void)argv;
+
+    memory_init();
 
     LOG_FATAL("std::vector<const char*> enabledInstanceExtensions; fatal situation: %f", 3.14f);
     LOG_ERROR(" std::vector<const char*> enabledInstanceExtensions;error situation: %f", 3.14f);
@@ -18,16 +22,18 @@ int main(int argc, char* argv[]) {
 
     engine engine = {0}; 
     if(!engine_init(&engine)){
-        LOG_INFO("-----------------engine init failed");
+        LOG_ERROR("-----------------engine init failed");
         return -2;
     }
 
-    if(!engine_create(&engine)){
-        LOG_INFO("-----------------engine create failed");
+   if(!engine_create(&engine)){
+        LOG_ERROR("-----------------engine create failed");
         return -1;
     }
 
     engine_run(&engine);
 
+    engine_clear(&engine);
+    memory_destroy();
     return 0;
 }

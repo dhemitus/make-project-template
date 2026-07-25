@@ -79,3 +79,7 @@ STATIC_ASSERT(sizeof(f64) == 8, "size of f64: 8 bytes");
 
 #define MIN(x, y) (x < y ? x : y)
 #define MAX(x, y) (x > y ? x : y)
+
+#define GIBBYTES(amount) ((amount) * 1024ULL * 1024ULL * 1024ULL)
+#define MEBBYTES(amount) ((amount) * 1024ULL * 1024ULL)
+#define KIBBYTES(amount) ((amount) * 1024ULL)

@@ -3,25 +3,25 @@
 #include <stdlib.h>
 #include <string.h>
 
-void *allocate_memory(u64 size, b8 aligned){
+void *platform_allocate_memory(u64 size, b8 aligned){
     (void)aligned;
     return malloc(size);
 }
 
-void free_memory(void *block, b8 aligned){
+void platform_free_memory(void *block, b8 aligned){
     (void)aligned;
     free(block);
 }
 
-void *zero_memory(void *block, u64 size){
+void *platform_zero_memory(void *block, u64 size){
     return memset(block, 0, size);
 }
 
-void *copy_memory(void *dest, const void *source, u64 size){
+void *platform_copy_memory(void *dest, const void *source, u64 size){
     return memcpy(dest, source, size);
 }
 
-void *set_memory(void *dest, i32 value, u64 size){
+void *platform_set_memory(void *dest, i32 value, u64 size){
     return memset(dest, value, size);
 }
 

@@ -128,3 +128,26 @@ key_action sdl_key_to_keyaction(u32 action);
 button_type sdl_button_to_buttontype(u8 button);
 button_action sdl_button_to_buttonaction(u32 action);
 input_event_type sdl_event_to_type(u32 type);
+
+void input_init(void);
+void input_destroy(void);
+void input_update(u64 delta_time);
+
+DHEMITUS_API b8 input_is_key_down(key_code key);
+DHEMITUS_API b8 input_is_key_up(key_code key);
+DHEMITUS_API b8 input_was_key_down(key_code key);
+DHEMITUS_API b8 input_was_key_up(key_code key);
+
+void input_process_key(key_code key, b8 pressed);
+
+DHEMITUS_API b8 input_is_button_down(button_type button);
+DHEMITUS_API b8 input_is_button_up(button_type button);
+DHEMITUS_API b8 input_was_button_down(button_type button);
+DHEMITUS_API b8 input_was_button_up(button_type button);
+
+DHEMITUS_API void input_get_mouse_position(i32 *x, i32 *y);
+DHEMITUS_API void input_get_previous_mouse_position(i32 *x, i32 *y);
+
+void input_process_button(button_type button, b8 pressed);
+void input_process_mouse_move(i16 x, i16 y);
+void input_process_mouse_wheel(i8 delta);
