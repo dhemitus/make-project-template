@@ -1,22 +1,18 @@
 #include "dhemitus/engine.h"
-#include "SDL3/SDL_timer.h"
+#include "dhemitus/clock.h"
 #include "dhemitus/logger.h"
+#include "dhemitus/renderer_type.h"
 #include "preference.h"
 #include "dhemitus/frame_data.h"
 #include <SDL3/SDL.h>
 #include "dhemitus/memory.h"
 #include "dhemitus/event.h"
 #include "dhemitus/input.h"
+#include "dhemitus/renderer_frontend.h"
 
-window_context context = {
-    .window = NULL,
-    .has_mouse_focus = false,
-    .has_input_focus = false       
-};
+window_context context;
 
-frame_data frame = {
-    .accumulator = 0,
-};
+frame_data frame = {0};
 
 typedef struct engine_state {
     b8 is_running;
@@ -57,6 +53,12 @@ b8 engine_create(engine *engine){
         LOG_WARN("window create failed");
         return false;
     }
+
+    if(!renderer_init(engine->config->title, engine->window_context)){
+        LOG_FATAL("initialize renderer failed");
+        return false;
+    }
+
     state.is_running = true;
     state.is_visible = true;
 
@@ -68,12 +70,14 @@ b8 engine_create(engine *engine){
 }
 
 void engine_run(engine *engine){
-    frame.current_time = SDL_GetTicksNS();
-    frame.update_time = 1000000000 / engine->config->fps; 
+    if(!engine) return;
+
+    clock_init(&frame);
+
     LOG_INFO(get_memory_to_string());
 
     while (state.is_running) {
-        if(!engine_next_loop(engine, &frame)){
+        if(!engine_next_loop(engine)){
             state.is_running = false;
         }
 
@@ -92,14 +96,37 @@ void engine_run(engine *engine){
 
 
     event_destroy();
+    input_destroy();
+    renderer_destroy();
     window_destroy(engine->window_context);
 }
 
-b8 engine_next_loop(engine *engine, frame_data *frame_data){
-    if(!engine) return false;
+b8 engine_next_loop(engine *engine){
     
+    const double target_fixed_step = 1.0 / (double)engine->config->fps;
     SDL_Event event;
 
+        clock_tick(&frame);
+        while (frame.accumulator_s >= target_fixed_step) {
+            window_poll_events(engine, &event);
+//        if(state.is_visible){
+        // here we update
+            if(engine->on_update_callback){
+                engine->on_update_callback(engine->game_state);
+            }
+
+            input_update(frame.delta_time_ns);
+//        }
+            frame.accumulator_s -= target_fixed_step;
+        }
+        render_packet packet;
+        packet.delta_time = frame.delta_time_ns;
+        renderer_draw_frame(&packet);
+        if(engine->on_render_callback){
+            engine->on_render_callback(engine->game_state, frame.delta_time_ns);
+        }
+
+/*
     frame_data->last_time = frame_data->current_time;
     frame_data->current_time = SDL_GetTicksNS();
 
@@ -129,7 +156,7 @@ b8 engine_next_loop(engine *engine, frame_data *frame_data){
         engine->on_render_callback(engine->game_state, dt);
     }
 
-    frame_data->accumulator += dt;
+    frame_data->accumulator += dt;*/
 
     return true;
 }

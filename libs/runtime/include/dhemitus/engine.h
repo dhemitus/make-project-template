@@ -44,5 +44,5 @@ struct game_config {
 DHEMITUS_API b8 engine_create(engine *engine);
 DHEMITUS_API void engine_run(engine *engine);
 
-b8 engine_next_loop(engine *engine, frame_data *frame_data);
+b8 engine_next_loop(engine *engine);
 

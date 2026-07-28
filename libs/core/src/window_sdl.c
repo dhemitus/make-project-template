@@ -1,5 +1,6 @@
 #include <SDL3/SDL.h>
 #include <SDL3/SDL_vulkan.h>
+#include "SDL3/SDL_timer.h"
 #include "dhemitus/engine.h"
 #include "dhemitus/window.h"
 #include "dhemitus/logger.h"
@@ -74,6 +75,9 @@ void window_destroy(window_context *context){
     SDL_Quit();
 }
 
+u64 get_nano_second_ticks(void){
+    return SDL_GetTicksNS();
+}
 void window_set_gamepad_callback(window_context *context, gamepad_callback_func callback){
     context->on_gamepad_callback = callback;
 }

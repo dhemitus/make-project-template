@@ -31,6 +31,8 @@ struct window_context {
     gesture_pan_callback_func on_gesture_pan_callback;
 };
 
+u64 get_nano_second_ticks(void);
+
 b8 window_create(window_context *context, int width, int height, const char *title);
 void window_destroy(window_context *context);
 /*

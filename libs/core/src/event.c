@@ -53,6 +53,7 @@ void event_handler(engine *engine, const SDL_Event *event){
 
             break;
         case SDL_EVENT_MOUSE_WHEEL:
+            LOG_INFO("wheel horizontal %d vertical %d", event->wheel.integer_x, event->wheel.integer_y);
             //still how to
             /*if(engine->on_input_callback){
                 input_event_type type = sdl_event_to_type(event->type);

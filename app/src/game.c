@@ -22,9 +22,8 @@ b8 on_render(void *game_state, u64 dt){
     state->render_called += 1;
     state->time_passed += dt;
     if(state->time_passed > 1000 * 1000 * 1000){
-       // LOG_INFO("update new fps: %.2f", (double)state->update_called);
-       // LOG_INFO("render new fps: %.2f", (double)state->render_called);
-
+//        LOG_DEBUG("update new fps: %.2f", (double)state->update_called);
+//        LOG_DEBUG("render new fps: %.2f", (double)state->render_called);
         state->update_called = 0;
         state->render_called = 0;
         state->time_passed = 0;

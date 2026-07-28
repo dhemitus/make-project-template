@@ -1,0 +1,9 @@
+#pragma once
+
+#include "preference.h"
+#include <vulkan/vulkan.h>
+
+typedef struct vulkan_context {
+    VkInstance instance;
+    VkAllocationCallbacks *allocator;
+} vulkan_context;
